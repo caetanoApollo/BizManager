@@ -1,9 +1,9 @@
-# BizManager
+# BizManager📈
 
-## Descrição
+## Descrição✍🏽
 O BizManager é um aplicativo desenvolvido para auxiliar microempreendedores na gestão de seus negócios. Ele oferece funcionalidades essenciais para otimizar processos, melhorar a eficiência operacional e fornecer uma visão clara do desempenho financeiro e administrativo da empresa.
 
-## Funcionalidades Principais
+## Funcionalidades Principais📱
 - **Cadastro e Autenticação**
   - Cadastro de usuários e clientes.
   - Autenticação segura com recuperação de senha.
@@ -26,7 +26,7 @@ O BizManager é um aplicativo desenvolvido para auxiliar microempreendedores na 
   - Integração com a API da Receita Federal.
   - Geração e reemissão de notas fiscais eletrônicas.
 
-## Tecnologias Utilizadas
+## Tecnologias Utilizadas👾
 - **Frontend:** React Native e React Native for Web
 - **Backend:** Node.js com Express
 - **Banco de Dados:** MySQL
@@ -36,12 +36,12 @@ O BizManager é um aplicativo desenvolvido para auxiliar microempreendedores na 
   - Google Sheets para exportação de dados.
   - Firebase Cloud Messaging para notificações.
 
-## Requisitos de Sistema
+## Requisitos de Sistema💻
 - Node.js e npm instalados.
 - MySQL configurado.
 - Conta no Firebase para gerenciamento de notificações.
 
-## Autor
+## Autor🧑🏽‍💻
 
 **Caetano Apollo da Silveira**
 
@@ -49,6 +49,6 @@ O BizManager é um aplicativo desenvolvido para auxiliar microempreendedores na 
 - **LinkedIn:** [https://www.linkedin.com/in/caetano-apollo](https://www.linkedin.com/in/caetano-apollo)
 - **E-mail:** [caetanosilveira1908@gmail.com](mailto:caetanosilveira1908@gmail.com)
 
-## Licença
+## Licença📄
 
 Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para mais detalhes.
