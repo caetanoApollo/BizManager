@@ -46,7 +46,7 @@ O BizManager é um aplicativo desenvolvido para auxiliar microempreendedores na 
 **Caetano Apollo da Silveira**
 
 - **GitHub:** [https://github.com/caetanoApollo](https://github.com/caetanoApollo)
-- **LinkedIn:** [https://www.linkedin.com/in/caetano-apollo](https://www.linkedin.com/in/caetano-apollo)
+- **LinkedIn:** [https://www.linkedin.com/in/caetano-apollo](https://www.linkedin.com/in/caetanoapollo)
 - **E-mail:** [caetanosilveira1908@gmail.com](mailto:caetanosilveira1908@gmail.com)
 
 ## Licença📄
