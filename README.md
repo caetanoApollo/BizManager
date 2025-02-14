@@ -1,50 +1,54 @@
-# Welcome to your Expo app 👋
+# BizManager
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Descrição
+O BizManager é um aplicativo desenvolvido para auxiliar microempreendedores na gestão de seus negócios. Ele oferece funcionalidades essenciais para otimizar processos, melhorar a eficiência operacional e fornecer uma visão clara do desempenho financeiro e administrativo da empresa.
 
-## Get started
+## Funcionalidades Principais
+- **Cadastro e Autenticação**
+  - Cadastro de usuários e clientes.
+  - Autenticação segura com recuperação de senha.
 
-1. Install dependencies
+- **Gestão de Clientes**
+  - Registro de clientes.
+  - Agendamento de serviços com integração ao Google Agenda.
+  - Acompanhamento do histórico de interações.
 
-   ```bash
-   npm install
-   ```
+- **Gestão Financeira**
+  - Registro e controle de receitas e despesas.
+  - Geração de relatórios financeiros exportáveis em PDF e Excel.
+  - Visualização de gráficos financeiros detalhados.
 
-2. Start the app
+- **Controle de Estoque**
+  - Cadastro de produtos com informações detalhadas.
+  - Notificações de reabastecimento.
 
-   ```bash
-    npx expo start
-   ```
+- **Emissão de Notas Fiscais**
+  - Integração com a API da Receita Federal.
+  - Geração e reemissão de notas fiscais eletrônicas.
 
-In the output, you'll find options to open the app in a
+## Tecnologias Utilizadas
+- **Frontend:** React Native e React Native for Web
+- **Backend:** Node.js com Express
+- **Banco de Dados:** MySQL
+- **Integrações:**
+  - API da Receita Federal para emissão de notas fiscais.
+  - Google Calendar para agendamento de serviços.
+  - Google Sheets para exportação de dados.
+  - Firebase Cloud Messaging para notificações.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Requisitos de Sistema
+- Node.js e npm instalados.
+- MySQL configurado.
+- Conta no Firebase para gerenciamento de notificações.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Autor
 
-## Get a fresh project
+**Caetano Apollo da Silveira**
 
-When you're ready, run:
+- **GitHub:** [https://github.com/caetanoApollo](https://github.com/caetanoApollo)
+- **LinkedIn:** [https://www.linkedin.com/in/caetano-apollo](https://www.linkedin.com/in/caetano-apollo)
+- **E-mail:** [caetanosilveira1908@gmail.com](mailto:caetanosilveira1908@gmail.com)
 
-```bash
-npm run reset-project
-```
+## Licença
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para mais detalhes.
