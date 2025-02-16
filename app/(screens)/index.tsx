@@ -146,7 +146,7 @@ export default function HomePage() {
 
             <TouchableOpacity
               style={styles.registerButton}
-              onPress={() => router.push("/signup")}
+              onPress={() => router.push("/(screens)/signup")}
             >
               <Text style={styles.registerButtonText}>CADASTRAR</Text>
             </TouchableOpacity>

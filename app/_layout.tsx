@@ -21,8 +21,11 @@ export default function Layout() {
       {/* Tela Principal */}
       <Stack.Screen name="(screens)/main" />
       
-      {/* Tela de configurações */}
+      {/* Tela de Configurações */}
       <Stack.Screen name="(screens)/config" />
+      
+      {/* Tela de Notas Fiscais */}
+      <Stack.Screen name="(screens)/notaFiscal" />
     </Stack>
   );
 }

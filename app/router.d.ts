@@ -12,6 +12,7 @@ declare module 'expo-router' {
         | '/(screens)/passwordReset'
         | '/(screens)/main'
         | '/(screens)/config'
+        | '/(screens)/notaFiscal'
         | '/_sitemap'
         | '/signup';
       DynamicRoutes: never;
