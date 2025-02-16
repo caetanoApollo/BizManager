@@ -1,20 +1,28 @@
-// _layout.tsx
-import { Tabs } from 'expo-router';
+import React, { useState } from "react";
+import { Stack } from "expo-router";
+import LoadingScreen from "./components/loading";
 
 export default function Layout() {
-  return (
-    <Tabs>
+  const [loading, setLoading] = useState(true);
+
+  return loading ? (
+    <LoadingScreen onFinish={() => setLoading(false)} />
+  ) : (
+    <Stack screenOptions={{ headerShown: false }}>
       {/* Tela inicial */}
-      <Tabs.Screen
-        name="index" // Nome do arquivo (app/(tabs)/index.tsx)
-        options={{ title: 'Início' }} // Título da aba
-      />
+      <Stack.Screen name="(screens)/index" />
 
       {/* Tela de cadastro */}
-      <Tabs.Screen
-        name="signup" // Nome do arquivo (app/(tabs)/signup.tsx)
-        options={{ title: 'Cadastro' }} // Título da aba
-      />
-    </Tabs>
+      <Stack.Screen name="(screens)/signup" />
+
+      {/* Tela de recuperação de senha */}
+      <Stack.Screen name="(screens)/passwordReset" />
+
+      {/* Tela Principal */}
+      <Stack.Screen name="(screens)/main" />
+      
+      {/* Tela de configurações */}
+      <Stack.Screen name="(screens)/config" />
+    </Stack>
   );
 }

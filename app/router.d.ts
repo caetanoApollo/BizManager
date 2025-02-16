@@ -6,9 +6,12 @@ declare module 'expo-router' {
     export interface RouteMap {
       StaticRoutes:
         | '/'
-        | '/(tabs)'
-        | '/(tabs)/index'
-        | '/(tabs)/signup'
+        | '/(screens)'
+        | '/(screens)/index'
+        | '/(screens)/signup'
+        | '/(screens)/passwordReset'
+        | '/(screens)/main'
+        | '/(screens)/config'
         | '/_sitemap'
         | '/signup';
       DynamicRoutes: never;
