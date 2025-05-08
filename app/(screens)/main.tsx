@@ -4,7 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import * as SplashScreen from "expo-splash-screen";
-import { router } from "expo-router";
+import { Nav, Header } from "../components/utils";
 
 const Dashboard = () => {
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
@@ -28,12 +28,7 @@ const Dashboard = () => {
 
   return (
     <LinearGradient colors={["#2A4D69", "#5D9B9B"]} style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>BIZMANAGER</Text>
-        <TouchableOpacity onPress={() => router.push("/(screens)/config")}>
-          <MaterialCommunityIcons name="cog" size={24} color="#F5F5F5" />
-        </TouchableOpacity>
-      </View>
+      <Header/>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>
@@ -88,59 +83,13 @@ const Dashboard = () => {
         </View>
       </View>
 
-      <View style={styles.footer}>
-        <TouchableOpacity>
-          <FontAwesome6
-            name="boxes-stacked"
-            size={25}
-            color="#F5F5F5"
-          />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/(screens)/notaFiscal")}>
-          <MaterialCommunityIcons
-            name="folder"
-            size={30}
-            color="#F5F5F5"
-          />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="home" size={30} color="#F5F5F5" />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <MaterialCommunityIcons
-            name="finance"
-            size={30}
-            color="#F5F5F5"
-          />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="calendar" size={30} color="#F5F5F5" />
-        </TouchableOpacity>
-      </View>
+      <Nav />
     </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
-    paddingVertical: 20,
-    paddingTop: 50,
-    backgroundColor: "#2A4D69",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    width: "100%",
-  },
-  title: {
-    fontSize: 50,
-    fontFamily: "BebasNeue",
-    color: "#F5F5F5",
-    marginLeft: 90,
-  },
   card: {
     width: "80%",
     backgroundColor: "rgba(255, 255, 255, 0.2)",
@@ -183,20 +132,7 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
-  },
-  footer: {
-    width: "90%",
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 60,
-    padding: 10,
-    borderRadius: 15,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    shadowOffset: { width: 8, height: 5},
-  },
+  }
 });
 
 export default Dashboard;

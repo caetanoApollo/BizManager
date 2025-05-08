@@ -1,127 +1,131 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import React from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+} from "react-native";
+import {
+  FontAwesome6,
+  MaterialCommunityIcons,
+  MaterialIcons,
+} from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import {Nav, addButton} from "../components/utils";
 
 const invoices = [
-  { id: '1', number: 'NF 01', company: 'EMPRESA 01' },
-  { id: '2', number: 'NF 01', company: 'EMPRESA 01' },
-  { id: '3', number: 'NF 01', company: 'EMPRESA 01' },
-  { id: '4', number: 'NF 01', company: 'EMPRESA 01' },
+  { id: "1", number: "NF 01", company: "EMPRESA 01" },
+  { id: "2", number: "NF 01", company: "EMPRESA 01" },
+  { id: "3", number: "NF 01", company: "EMPRESA 01" },
+  { id: "4", number: "NF 01", company: "EMPRESA 01" },
 ];
 
 const InvoiceScreen = () => {
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>BIZMANAGER</Text>
-        <MaterialIcons name="settings" size={24} color="#fff" />
-      </View>
-      <View style={styles.section}>
-        <MaterialIcons name="folder" size={20} color="#fff" />
-        <Text style={styles.sectionTitle}>NOTAS FISCAIS</Text>
-      </View>
-      <View style={styles.tableContainer}>
-        <View style={styles.tableHeader}>
-          <Text style={styles.tableHeaderText}>Nº DA NOTA</Text>
-          <Text style={styles.tableHeaderText}>TOMADOR</Text>
+    <LinearGradient colors={["#2A4D69", "#5D9B9B"]} style={styles.container}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>BIZMANAGER</Text>
+          <MaterialIcons name="settings" size={24} color="#fff" />
         </View>
-        <FlatList
-          data={invoices}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.tableRow}>
-              <Text style={styles.tableCell}>{item.number}</Text>
-              <Text style={styles.tableCell}>{item.company}</Text>
-            </View>
-          )}
-        />
+        <View style={styles.section}>
+          <MaterialIcons name="folder" size={30} color="#fff" />
+          <Text style={styles.sectionTitle}>NOTAS FISCAIS</Text>
+        </View>
+        <View style={styles.tableContainer}>
+          <View style={styles.tableHeader}>
+            <Text style={styles.tableHeaderText}>Nº DA NOTA</Text>
+            <Text style={styles.tableHeaderText}>TOMADOR</Text>
+          </View>
+          <FlatList
+            data={invoices}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.tableRow}>
+                <Text style={styles.tableCell}>{item.number}</Text>
+                <Text style={styles.tableCell}>{item.company}</Text>
+              </View>
+            )}
+          />
+        </View>
+
+        {addButton({})}
+
+        <Nav style={{ marginTop: 125 }} />
       </View>
-      <TouchableOpacity style={styles.addButton}>
-        <MaterialIcons name="add" size={30} color="#fff" />
-      </TouchableOpacity>
-      <View style={styles.bottomNav}>
-        <MaterialIcons name="inventory" size={24} color="#fff" />
-        <MaterialIcons name="home" size={24} color="#fff" />
-        <MaterialIcons name="savings" size={24} color="#fff" />
-        <MaterialIcons name="calendar-today" size={24} color="#fff" />
-      </View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#2F4F4F',
-    padding: 20,
+    alignItems: "center",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    paddingVertical: 20,
+    paddingTop: 50,
+    backgroundColor: "#2A4D69",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    width: "100%",
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 50,
+    fontFamily: "BebasNeue",
+    color: "#F5F5F5",
+    marginLeft: 90,
   },
   section: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: 20,
   },
   sectionTitle: {
-    color: '#fff',
+    fontFamily: "BebasNeue",
+    padding: 10,
+    color: "#fff",
     marginLeft: 5,
-    fontSize: 16,
+    fontSize: 35,
   },
   tableContainer: {
-    backgroundColor: '#3E6D6D',
+    width: 300,
+    height: 430,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    padding: 15,
     borderRadius: 10,
-    padding: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    shadowOffset: { width: 8, height: 5},
   },
   tableHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     borderBottomWidth: 1,
-    borderBottomColor: '#fff',
+    borderBottomColor: "#fff",
     paddingBottom: 5,
   },
   tableHeaderText: {
-    fontWeight: 'bold',
-    color: '#fff',
+    fontFamily: "BebasNeue",
+    fontSize: 25,
+    fontWeight: "bold",
+    color: "#fff",
   },
   tableRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingVertical: 5,
   },
   tableCell: {
-    color: '#fff',
-  },
-  addButton: {
-    position: 'absolute',
-    bottom: 80,
-    right: 20,
-    backgroundColor: '#FFA500',
-    borderRadius: 50,
-    width: 60,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#1E3C3C',
-    paddingVertical: 10,
-    borderRadius: 10,
-    position: 'absolute',
-    bottom: 10,
-    left: 20,
-    right: 20,
-  },
+    fontFamily: "BebasNeue",
+    fontSize: 20,
+    color: "#fff",
+  }
 });
 
 export default InvoiceScreen;

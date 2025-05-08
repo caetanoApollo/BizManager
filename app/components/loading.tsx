@@ -16,7 +16,7 @@ const LoadingScreen = ({ onFinish }: { onFinish: () => void }) => {
 
   useEffect(() => {
     // Anima cada barra com durações e delays distintos para um efeito orgânico
-    bars.forEach((bar, index) => {
+    bars.forEach((bar, index) => {  
       Animated.loop(
         Animated.sequence([
           Animated.delay(index * 100),
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 40,
     color: "#F5F5F5",
-    fontFamily: "BebasNeue", // Certifique-se de que essa fonte esteja carregada
+    fontFamily: "BebasNeue",
     marginBottom: 10,
   },
   subtitle: {

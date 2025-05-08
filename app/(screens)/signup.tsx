@@ -24,6 +24,7 @@ const CadastroPage: React.FC = () => {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [confirmarSenhaVisivel, setConfirmarSenhaVisivel] = useState(false);
+  const [telefone, setTelefone] = useState("");
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
 
   useEffect(() => {
@@ -164,6 +165,16 @@ const CadastroPage: React.FC = () => {
               placeholder="Digite seu email"
               placeholderTextColor="#ccc"
               keyboardType="email-address"
+            />
+            <Text style={styles.label}>TELEFONE:</Text>
+            <TextInput
+              style={styles.input}
+              value={telefone}
+              onChangeText={setTelefone}
+              placeholder="Digite seu telefone"
+              placeholderTextColor="#ccc"
+              keyboardType="phone-pad"
+              maxLength={15} // Formato: (XX) XXXXX-XXXX
             />
             <Text style={styles.label}>SENHA:</Text>
             <View style={styles.passwordContainer}>

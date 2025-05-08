@@ -13,6 +13,7 @@ declare module 'expo-router' {
         | '/(screens)/main'
         | '/(screens)/config'
         | '/(screens)/notaFiscal'
+        | '/(screens)/addNota'
         | '/_sitemap'
         | '/signup';
       DynamicRoutes: never;
