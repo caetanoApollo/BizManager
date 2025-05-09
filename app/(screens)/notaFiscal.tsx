@@ -6,12 +6,10 @@ import {
   StyleSheet,
 } from "react-native";
 import {
-  FontAwesome6,
-  MaterialCommunityIcons,
   MaterialIcons,
 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import {Nav, addButton} from "../components/utils";
+import {Nav, addButton, Header} from "../components/utils";
 
 const invoices = [
   { id: "1", number: "NF 01", company: "EMPRESA 01" },
@@ -24,10 +22,9 @@ const InvoiceScreen = () => {
   return (
     <LinearGradient colors={["#2A4D69", "#5D9B9B"]} style={styles.container}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>BIZMANAGER</Text>
-          <MaterialIcons name="settings" size={24} color="#fff" />
-        </View>
+
+      <Header/>
+
         <View style={styles.section}>
           <MaterialIcons name="folder" size={30} color="#fff" />
           <Text style={styles.sectionTitle}>NOTAS FISCAIS</Text>

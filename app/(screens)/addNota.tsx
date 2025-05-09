@@ -31,13 +31,13 @@ const AddNotaPage: React.FC = () => {
 
   useEffect(() => {
     Animated.timing(pickerHeight, {
-      toValue: showServicos ? 100 : 0,
-      duration: 300,
+      toValue: showServicos ? 85 : 0,
+      duration: 500,
       useNativeDriver: false,
     }).start();
   }, [showServicos]);
 
-  // Serviços mockados
+  //! Serviços mockados, colocar via API depois
   const [servicosPrestados] = useState([
     { id: "1", nome: "Consultoria TI" },
     { id: "2", nome: "Desenvolvimento Software" },
@@ -59,18 +59,24 @@ const AddNotaPage: React.FC = () => {
 
   const formatCNPJ = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
-    return cleaned
-      .replace(/(\d{2})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1/$2')
-      .replace(/(\d{4})(\d)/, '$1-$2')
-      .slice(0, 18);
+    if (cleaned.length <= 2) return cleaned;
+    if (cleaned.length <= 5) return `${cleaned.slice(0, 2)}.${cleaned.slice(2)}`;
+    if (cleaned.length <= 8) return `${cleaned.slice(0, 2)}.${cleaned.slice(2, 5)}.${cleaned.slice(5)}`;
+    if (cleaned.length <= 12) return `${cleaned.slice(0, 2)}.${cleaned.slice(2, 5)}.${cleaned.slice(5, 8)}/${cleaned.slice(8)}`;
+    return `${cleaned.slice(0, 2)}.${cleaned.slice(2, 5)}.${cleaned.slice(5, 8)}/${cleaned.slice(8, 12)}-${cleaned.slice(12, 14)}`;
   };
 
   const handleCNPJChange = (text: string) => {
     const formatted = formatCNPJ(text);
     setCnpjTomador(formatted);
   };
+
+  const valorNumerico = parseFloat(
+    valorTotal
+      .replace('R$ ', '')
+      .replace(/\./g, '')
+      .replace(',', '.')
+  );
 
   const formatDate = (text: string) => {
     const cleaned = text.replace(/\D/g, '');
@@ -130,7 +136,7 @@ const AddNotaPage: React.FC = () => {
               <Text style={{
                 color: servicoSelecionado ? '#F5F5F5' : '#ccc',
                 fontFamily: "BebasNeue",
-                fontSize: 16 // Tamanho da fonte reduzido
+                fontSize: 20
               }}>
                 {servicoSelecionado || "Selecione o serviço"}
               </Text>
@@ -182,11 +188,27 @@ const AddNotaPage: React.FC = () => {
             <Text style={styles.label}>Valor Total (R$):</Text>
             <TextInput
               style={styles.input}
-              value={valorTotal}
-              onChangeText={(text) => setValorTotal(text.replace(/[^0-9,]/g, ''))}
-              placeholder="0,00"
+              value={valorTotal ? `R$ ${valorTotal}` : ''}
+              onChangeText={(text) => {
+                let cleaned = text.replace(/[^0-9,]/g, '');
+
+                cleaned = cleaned.replace(/^r\$?\s*/gi, '');
+
+                const parts = cleaned.split(',');
+                let integerPart = parts[0].replace(/\D/g, '');
+                const decimalPart = parts[1] ? parts[1].slice(0, 2) : '';
+
+                integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+                const formattedValue = decimalPart
+                  ? `${integerPart},${decimalPart}`
+                  : integerPart;
+
+                setValorTotal(formattedValue);
+              }}
+              placeholder="R$ 0,00"
               placeholderTextColor="#ccc"
-              keyboardType="decimal-pad"
+              keyboardType="numeric"
             />
           </View>
           <TouchableOpacity
@@ -265,14 +287,14 @@ const styles = StyleSheet.create({
   pickerContainer: {
     overflow: 'hidden',
     width: '100%',
-    backgroundColor: '#5D9B9B',
-    borderRadius: 5,
-    marginBottom: 10,
+    backgroundColor: 'rgba(42, 77, 105, 0.35)',
+    borderRadius: 10,
   },
   picker: {
     color: '#F5F5F5',
   },
   pickerItem: {
+    marginVertical: -80,
     fontSize: 16,
     color: '#F5F5F5',
     fontFamily: "BebasNeue",

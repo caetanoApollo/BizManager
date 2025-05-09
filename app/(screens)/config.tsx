@@ -12,14 +12,13 @@ import {
 } from "react-native";
 import {
   MaterialCommunityIcons,
-  FontAwesome6,
   Feather,
 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import * as SplashScreen from "expo-splash-screen";
-import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { Nav } from "../components/utils";
 
 const SettingsPage = () => {
   const [cnpj, setCnpj] = useState("");
@@ -205,31 +204,7 @@ const SettingsPage = () => {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.footer}>
-            <TouchableOpacity>
-              <FontAwesome6 name="boxes-stacked" size={25} color="#F5F5F5" />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <MaterialCommunityIcons name="folder" size={30} color="#F5F5F5" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/(screens)/main")}>
-              <MaterialCommunityIcons name="home" size={30} color="#F5F5F5" />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <MaterialCommunityIcons
-                name="finance"
-                size={30}
-                color="#F5F5F5"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <MaterialCommunityIcons
-                name="calendar"
-                size={30}
-                color="#F5F5F5"
-              />
-            </TouchableOpacity>
-          </View>
+          <Nav/>
         </LinearGradient>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -242,15 +217,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   header: {
-    width: "100%",
-    paddingVertical: 20,
-    paddingTop: 50,
     alignItems: "center",
+    padding: 20,
+    paddingTop: 50,
     backgroundColor: "#2A4D69",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
+    width: "100%",
   },
   title: {
+    letterSpacing: 1.5,
     fontSize: 50,
     fontFamily: "BebasNeue",
     color: "#F5F5F5",
