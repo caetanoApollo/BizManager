@@ -11,20 +11,21 @@ import {
   Alert,
   Animated,
 } from "react-native";
-import { MaterialIcons, AntDesign } from "@expo/vector-icons";
+import { MaterialIcons, AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import * as SplashScreen from "expo-splash-screen";
 import { useRouter } from "expo-router";
 import { Picker } from '@react-native-picker/picker';
-import { Header, Nav } from "../components/utils";
+import { Header } from "../components/utils";
 
 const AddNotaPage: React.FC = () => {
   const router = useRouter();
+  const [titulo, setTitulo] = useState("");
   const [servicoSelecionado, setServicoSelecionado] = useState("");
-  const [cnpjTomador, setCnpjTomador] = useState("");
   const [dataServico, setDataServico] = useState("");
   const [valorTotal, setValorTotal] = useState("");
+  const [descricao, setDescricao] = useState("");
   const [showServicos, setShowServicos] = useState(false);
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
   const pickerHeight = useRef(new Animated.Value(0)).current;
@@ -37,63 +38,14 @@ const AddNotaPage: React.FC = () => {
     }).start();
   }, [showServicos]);
 
-  //! Serviços mockados, colocar via API depois
-  const [servicosPrestados] = useState([
-    { id: "1", nome: "Consultoria TI" },
-    { id: "2", nome: "Desenvolvimento Software" },
-    { id: "3", nome: "Manutenção de Sistemas" },
-  ]);
-
-  useEffect(() => {
-    async function prepare() {
-      await SplashScreen.preventAutoHideAsync();
-    }
-    prepare();
-  }, []);
-
-  useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
-  const formatCNPJ = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length <= 2) return cleaned;
-    if (cleaned.length <= 5) return `${cleaned.slice(0, 2)}.${cleaned.slice(2)}`;
-    if (cleaned.length <= 8) return `${cleaned.slice(0, 2)}.${cleaned.slice(2, 5)}.${cleaned.slice(5)}`;
-    if (cleaned.length <= 12) return `${cleaned.slice(0, 2)}.${cleaned.slice(2, 5)}.${cleaned.slice(5, 8)}/${cleaned.slice(8)}`;
-    return `${cleaned.slice(0, 2)}.${cleaned.slice(2, 5)}.${cleaned.slice(5, 8)}/${cleaned.slice(8, 12)}-${cleaned.slice(12, 14)}`;
-  };
-
-  const handleCNPJChange = (text: string) => {
-    const formatted = formatCNPJ(text);
-    setCnpjTomador(formatted);
-  };
-
-  const valorNumerico = parseFloat(
-    valorTotal
-      .replace('R$ ', '')
-      .replace(/\./g, '')
-      .replace(',', '.')
-  );
-
-  const formatDate = (text: string) => {
-    const cleaned = text.replace(/\D/g, '');
-    return cleaned
-      .replace(/(\d{2})(\d)/, '$1/$2')
-      .replace(/(\d{2})(\d)/, '$1/$2')
-      .slice(0, 10);
-  };
-
   const handleSalvarNota = () => {
-    if (!servicoSelecionado) {
-      Alert.alert("Erro", "Selecione um serviço prestado");
+    if (!titulo.trim()) {
+      Alert.alert("Erro", "O título é obrigatório");
       return;
     }
 
-    if (cnpjTomador.length !== 18) {
-      Alert.alert("Erro", "CNPJ inválido");
+    if (!servicoSelecionado) {
+      Alert.alert("Erro", "Selecione um tipo");
       return;
     }
 
@@ -109,6 +61,22 @@ const AddNotaPage: React.FC = () => {
 
     Alert.alert("Sucesso", "Nota salva com sucesso!");
     router.push("/");
+  };
+
+  const formatDate = (text: string) => {
+    const cleaned = text.replace(/\D/g, '');
+    return cleaned
+      .replace(/(\d{2})(\d)/, '$1/$2')
+      .replace(/(\d{2})(\d)/, '$1/$2')
+      .slice(0, 10);
+  };
+
+  const formatCurrency = (text: string) => {
+    const cleaned = text.replace(/\D/g, '');
+    if (cleaned.length === 0) return '';
+    const integerPart = cleaned.slice(0, -2) || '0';
+    const decimalPart = cleaned.slice(-2);
+    return `R$ ${parseInt(integerPart, 10).toLocaleString('pt-BR')},${decimalPart}`;
   };
 
   if (!fontsLoaded) {
@@ -134,21 +102,30 @@ const AddNotaPage: React.FC = () => {
               color="#F5F5F5"
               onPress={() => router.back()}
             />
-            <MaterialIcons name="folder" size={30} color="#fff" />
-            <Text style={{ fontSize: 25, color: "#F5F5F5", fontFamily: "BebasNeue" }}>Notas Fiscais</Text>
+            <MaterialCommunityIcons name="finance" size={30} color="#fff" />
+            <Text style={{ fontSize: 25, color: "#F5F5F5", fontFamily: "BebasNeue" }}>FINANCEIRO</Text>
           </View>
 
           <View style={styles.inputContainer}>
-            <View style={styles.boxTitle}>
+          <View style={styles.boxTitle}>
               <MaterialIcons
-                name="note-add"
+                name="add-card"
                 size={30}
                 color="#F5F5F5"
                 style={{ marginRight: 10 }}
               />
-              <Text style={styles.sectionTitle}>Adicionar Nota</Text>
+              <Text style={styles.sectionTitle}>Adicionar Lançamento</Text>
             </View>
-            <Text style={styles.label}>Serviço Prestado:</Text>
+            <Text style={styles.label}>Título:</Text>
+            <TextInput
+              style={styles.input}
+              value={titulo}
+              onChangeText={setTitulo}
+              placeholder="Digite o título"
+              placeholderTextColor="#ccc"
+            />
+
+            <Text style={styles.label}>Tipo:</Text>
             <TouchableOpacity
               style={styles.input}
               onPress={() => setShowServicos(!showServicos)}
@@ -158,7 +135,7 @@ const AddNotaPage: React.FC = () => {
                 fontFamily: "BebasNeue",
                 fontSize: 20
               }}>
-                {servicoSelecionado || "Selecione o serviço"}
+                {servicoSelecionado || "Entrada/Saída"}
               </Text>
             </TouchableOpacity>
 
@@ -172,27 +149,11 @@ const AddNotaPage: React.FC = () => {
                 style={styles.picker}
                 itemStyle={styles.pickerItem}
               >
-                <Picker.Item label="Selecione um serviço" value="" />
-                {servicosPrestados.map((servico) => (
-                  <Picker.Item
-                    key={servico.id}
-                    label={servico.nome}
-                    value={servico.nome}
-                  />
-                ))}
+                <Picker.Item label="Selecione um tipo" value="" />
+                <Picker.Item label="Entrada" value="Entrada" />
+                <Picker.Item label="Saída" value="Saída" />
               </Picker>
             </Animated.View>
-
-            <Text style={styles.label}>CNPJ do Tomador:</Text>
-            <TextInput
-              style={styles.input}
-              value={cnpjTomador}
-              onChangeText={handleCNPJChange}
-              placeholder="Digite o CNPJ"
-              placeholderTextColor="#ccc"
-              keyboardType="numeric"
-              maxLength={18}
-            />
 
             <Text style={styles.label}>Data do Serviço:</Text>
             <TextInput
@@ -209,22 +170,23 @@ const AddNotaPage: React.FC = () => {
             <TextInput
               style={styles.input}
               value={valorTotal}
-              onChangeText={(text) => {
-                let cleaned = text.replace(/\D/g, '');
-                if (cleaned.length === 0) {
-                  setValorTotal('');
-                  return;
-                }
-
-                const integerPart = cleaned.slice(0, -2) || '0';
-                const decimalPart = cleaned.slice(-2);
-
-                const formattedValue = `R$ ${parseInt(integerPart, 10).toLocaleString('pt-BR')},${decimalPart}`;
-                setValorTotal(formattedValue);
-              }}
+              onChangeText={(text) => setValorTotal(formatCurrency(text))}
               placeholder="R$ 0,00"
               placeholderTextColor="#ccc"
               keyboardType="numeric"
+            />
+
+            <Text style={styles.label}>Descrição:</Text>
+            <TextInput
+              style={[styles.input, { maxHeight: 500, minHeight: 100 }]}
+              value={descricao}
+              onChangeText={setDescricao}
+              placeholder="Descrição"
+              placeholderTextColor="#ccc"
+              multiline
+              numberOfLines={4}
+              textAlign="left"
+              maxLength={200}
             />
           </View>
           <TouchableOpacity
@@ -233,13 +195,11 @@ const AddNotaPage: React.FC = () => {
           >
             <Text style={styles.buttonText}>Salvar Nota</Text>
           </TouchableOpacity>
-          <Nav />
         </LinearGradient>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: { alignItems: "center" },
@@ -250,6 +210,11 @@ const styles = StyleSheet.create({
     marginRight: "50%",
     alignItems: "center",
     flexDirection: "row",
+  },
+  boxTitle: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
   },
   sectionTitle: {
     fontFamily: "BebasNeue",
@@ -273,18 +238,6 @@ const styles = StyleSheet.create({
     width: "100%",
     fontFamily: "BebasNeue",
   },
-  icon: { position: "absolute", right: 10, bottom: 20 },
-  boxTitle: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  center: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 20,
-  },
   label: {
     color: "#F5F5F5",
     fontSize: 25,
@@ -299,6 +252,7 @@ const styles = StyleSheet.create({
     width: "60%",
     alignItems: "center",
     marginTop: 20,
+    marginBottom: 30,
   },
   buttonText: {
     fontFamily: "BebasNeue",

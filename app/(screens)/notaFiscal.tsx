@@ -9,7 +9,7 @@ import {
   MaterialIcons,
 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import {Nav, addButton, Header} from "../components/utils";
+import { Nav, addButton, Header } from "../components/utils";
 
 const invoices = [
   { id: "1", number: "NF 01", company: "EMPRESA 01" },
@@ -23,11 +23,13 @@ const InvoiceScreen = () => {
     <LinearGradient colors={["#2A4D69", "#5D9B9B"]} style={styles.container}>
       <View style={styles.container}>
 
-      <Header/>
+        <Header />
 
         <View style={styles.section}>
-          <MaterialIcons name="folder" size={30} color="#fff" />
-          <Text style={styles.sectionTitle}>NOTAS FISCAIS</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginRight: "40%" }}>
+            <MaterialIcons name="folder" size={30} color="#fff" />
+            <Text style={styles.sectionTitle}>NOTAS FISCAIS</Text>
+          </View>
         </View>
         <View style={styles.tableContainer}>
           <View style={styles.tableHeader}>
@@ -46,7 +48,7 @@ const InvoiceScreen = () => {
           />
         </View>
 
-        {addButton({})}
+        {addButton({ activeRoute: "/(screens)/addNota" })}
 
         <Nav style={{ marginTop: 125 }} />
       </View>
@@ -98,7 +100,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.3,
     shadowRadius: 5,
-    shadowOffset: { width: 8, height: 5},
+    shadowOffset: { width: 8, height: 5 },
   },
   tableHeader: {
     flexDirection: "row",

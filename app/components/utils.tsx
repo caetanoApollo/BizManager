@@ -33,7 +33,7 @@ const addButton = ({
     const isActive = (route: string) => activeRoute === route;
 
     return (
-        <TouchableOpacity style={[styles.addButton, style]} onPress={() => router.push("/addNota")}>
+        <TouchableOpacity style={[styles.addButton, style]} onPress={() => router.push(activeRoute as any)}>
             <FontAwesome6
                 name="plus"
                 size={iconSize}
@@ -74,7 +74,7 @@ const Nav: React.FC<NavProps> = ({
                     color={isActive("/main") ? "#FFFFFF" : iconColor}
                 />
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/financeiro")}>
                 <MaterialCommunityIcons
                     name="finance"
                     size={iconSize}

@@ -26,6 +26,15 @@ export default function Layout() {
       
       {/* Tela de Notas Fiscais */}
       <Stack.Screen name="(screens)/notaFiscal" />
+
+      {/* Tela de adicionar Notas Fiscais */}
+      <Stack.Screen name="(screens)/addNota" />
+
+      {/* Tela de Financeiro */}
+      <Stack.Screen name="(screens)/financeiro" />
+      
+      {/* Tela de Adicionar entrada/saída */}
+      <Stack.Screen name="(screens)/addFinan" />
     </Stack>
   );
 }
