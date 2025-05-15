@@ -15,6 +15,11 @@ declare module 'expo-router' {
         | '/(screens)/notaFiscal'
         | '/(screens)/addNota'
         | '/(screens)/financeiro'
+        | '/(screens)/addFinan'
+        | '/(screens)/agenda'
+        | '/(screens)/addEvento'      
+        | '/(screens)/estoque'      
+        | '/(screens)/addEstoque'      
         | '/_sitemap'
         | '/signup';
       DynamicRoutes: never;

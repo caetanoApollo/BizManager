@@ -35,6 +35,18 @@ export default function Layout() {
       
       {/* Tela de Adicionar entrada/saída */}
       <Stack.Screen name="(screens)/addFinan" />
+      
+      {/* Tela de Adicionar evento */}
+      <Stack.Screen name="(screens)/addEvento" />
+      
+      {/* Tela de Agenda */}
+      <Stack.Screen name="(screens)/agenda" />
+      
+      {/* Tela de Agenda */}
+      <Stack.Screen name="(screens)/estoque" />
+      
+      {/* Tela de Agenda */}
+      <Stack.Screen name="(screens)/addEstoque" />
     </Stack>
   );
 }

@@ -53,10 +53,10 @@ const Nav: React.FC<NavProps> = ({
 
     return (
         <View style={[styles.footer, style]}>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/estoque")}>
                 <FontAwesome6
                     name="boxes-stacked"
-                    size={iconSize - 5} // Slightly smaller to match original
+                    size={iconSize - 5}
                     color={isActive("/boxes") ? "#FFFFFF" : iconColor}
                 />
             </TouchableOpacity>
@@ -81,7 +81,7 @@ const Nav: React.FC<NavProps> = ({
                     color={isActive("/finance") ? "#FFFFFF" : iconColor}
                 />
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/agenda")}>
                 <MaterialCommunityIcons
                     name="calendar"
                     size={iconSize}

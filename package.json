@@ -23,6 +23,8 @@
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/native-stack": "^7.2.0",
     "@react-navigation/stack": "^7.1.1",
+    "data-fns": "^1.1.0",
+    "date-fns": "^4.1.0",
     "expo": "^53.0.8",
     "expo-app-loading": "^1.1.2",
     "expo-blur": "~14.1.4",
