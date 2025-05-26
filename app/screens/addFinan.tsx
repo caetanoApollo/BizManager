@@ -22,6 +22,7 @@ import { Header } from "../components/utils";
 const AddNotaPage: React.FC = () => {
   const router = useRouter();
   const [titulo, setTitulo] = useState("");
+  const [categoria, setCategoria] = useState("");
   const [servicoSelecionado, setServicoSelecionado] = useState("");
   const [dataServico, setDataServico] = useState("");
   const [valorTotal, setValorTotal] = useState("");
@@ -107,7 +108,7 @@ const AddNotaPage: React.FC = () => {
           </View>
 
           <View style={styles.inputContainer}>
-          <View style={styles.boxTitle}>
+            <View style={styles.boxTitle}>
               <MaterialIcons
                 name="add-card"
                 size={30}
@@ -122,6 +123,15 @@ const AddNotaPage: React.FC = () => {
               value={titulo}
               onChangeText={setTitulo}
               placeholder="Digite o título"
+              placeholderTextColor="#ccc"
+            />
+
+            <Text style={styles.label}>Categoria:</Text>
+            <TextInput
+              style={styles.input}
+              value={categoria}
+              onChangeText={setCategoria}
+              placeholder="Digite a categoria"
               placeholderTextColor="#ccc"
             />
 

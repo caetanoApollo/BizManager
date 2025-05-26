@@ -93,7 +93,6 @@ const SettingsPage = () => {
   };
 
   const pickImage = async () => {
-    // Solicitar permissão para acessar a galeria
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {

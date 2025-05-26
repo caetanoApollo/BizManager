@@ -4,6 +4,7 @@ import {
     Text,
     FlatList,
     StyleSheet,
+    TouchableOpacity,
 } from "react-native";
 import {
     MaterialIcons,
@@ -11,6 +12,7 @@ import {
 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Nav, addButton, Header } from "../components/utils";
+import { router } from "expo-router";
 
 const FinanceScreen = () => {
     return (
@@ -44,9 +46,19 @@ const FinanceScreen = () => {
                     </View>
                 </View>
 
-                {addButton({activeRoute: "/(screens)/addFinan"})}
+                {addButton({activeRoute: "/screens/addFinan"})}
 
-                <Nav style={{ marginTop: 125 }} />
+                <TouchableOpacity style={{flexDirection: "row", alignItems: "center", marginTop: 20, padding: 10, backgroundColor: "#2A4D69", borderRadius: 10}} onPress={() => router.push("/screens/graficos")}>
+                    <MaterialIcons
+                        name="add-card"
+                        size={20}
+                        color="#F5F5F5"
+                        style={{ marginRight: 10 }}
+                    />
+                    <Text style={{fontSize: 20, color: "#F5F5F5", fontFamily: "BebasNeue"}}>Vizualizar gráficos</Text>
+                </TouchableOpacity>
+
+                <Nav style={{ marginTop: 75 }} />
             </View>
         </LinearGradient>
     );

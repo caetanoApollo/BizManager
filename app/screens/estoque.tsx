@@ -49,7 +49,7 @@ const InvoiceScreen = () => {
           />
         </View>
 
-        {addButton({ activeRoute: "/(screens)/addEstoque" })}
+        {addButton({ activeRoute: "/screens/addEstoque" })}
 
         <Nav style={{ marginTop: 125 }} />
       </View>

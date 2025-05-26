@@ -127,13 +127,13 @@ export default function HomePage() {
               ESQUECEU SENHA?{" "}
               <Text
                 style={styles.recoverLink}
-                onPress={() => router.push("/passwordReset")}
+                onPress={() => router.push("/screens/passwordReset")}
               >
                 RECUPERAR CONTA
               </Text>
             </Text>
 
-            <TouchableOpacity style={styles.button} onPress={() => router.push("/(screens)/main")}>
+            <TouchableOpacity style={styles.button} onPress={() => router.push("/screens/main")}>
               <Text style={styles.buttonText}>ENTRAR</Text>
             </TouchableOpacity>
           </View>
@@ -146,7 +146,7 @@ export default function HomePage() {
 
             <TouchableOpacity
               style={styles.registerButton}
-              onPress={() => router.push("/(screens)/signup")}
+              onPress={() => router.push("/screens/signup")}
             >
               <Text style={styles.registerButtonText}>CADASTRAR</Text>
             </TouchableOpacity>

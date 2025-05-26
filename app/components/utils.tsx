@@ -53,35 +53,35 @@ const Nav: React.FC<NavProps> = ({
 
     return (
         <View style={[styles.footer, style]}>
-            <TouchableOpacity onPress={() => router.push("/estoque")}>
+            <TouchableOpacity onPress={() => router.push("/screens/estoque")}>
                 <FontAwesome6
                     name="boxes-stacked"
                     size={iconSize - 5}
                     color={isActive("/boxes") ? "#FFFFFF" : iconColor}
                 />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/notaFiscal")}>
+            <TouchableOpacity onPress={() => router.push("/screens/notaFiscal")}>
                 <MaterialCommunityIcons
                     name="folder"
                     size={iconSize}
                     color={isActive("/folder") ? "#FFFFFF" : iconColor}
                 />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/main")}>
+            <TouchableOpacity onPress={() => router.push("/screens/main")}>
                 <MaterialCommunityIcons
                     name="home"
                     size={iconSize}
                     color={isActive("/main") ? "#FFFFFF" : iconColor}
                 />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/financeiro")}>
+            <TouchableOpacity onPress={() => router.push("/screens/financeiro")}>
                 <MaterialCommunityIcons
                     name="finance"
                     size={iconSize}
                     color={isActive("/finance") ? "#FFFFFF" : iconColor}
                 />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/agenda")}>
+            <TouchableOpacity onPress={() => router.push("/screens/agenda")}>
                 <MaterialCommunityIcons
                     name="calendar"
                     size={iconSize}
@@ -99,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({ title = "BIZMANAGER" }) => {
         <View style={styles.header}>
             <Text style={styles.title}>{title}</Text>
             <TouchableOpacity
-                onPress={() => router.push("/(screens)/config")}
+                onPress={() => router.push("/screens/config")}
                 hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             >
                 <MaterialCommunityIcons name="cog" size={24} color="#F5F5F5" />

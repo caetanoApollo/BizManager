@@ -49,7 +49,7 @@ const AgendaScreen = () => {
                     )}
                 />
 
-                {addButton({ activeRoute: "/(screens)/addEvento" })}
+                {addButton({ activeRoute: "/screens/addEvento" })}
                 <Nav style={styles.nav} />
             </View>
         </LinearGradient>

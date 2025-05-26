@@ -10,43 +10,46 @@ export default function Layout() {
   ) : (
     <Stack screenOptions={{ headerShown: false }}>
       {/* Tela inicial */}
-      <Stack.Screen name="(screens)/index" />
+      <Stack.Screen name="screens/index" />
 
       {/* Tela de cadastro */}
-      <Stack.Screen name="(screens)/signup" />
+      <Stack.Screen name="screens/signup" />  
 
       {/* Tela de recuperação de senha */}
-      <Stack.Screen name="(screens)/passwordReset" />
+      <Stack.Screen name="screens/passwordReset" />
 
       {/* Tela Principal */}
-      <Stack.Screen name="(screens)/main" />
+      <Stack.Screen name="screens/main" />
       
       {/* Tela de Configurações */}
-      <Stack.Screen name="(screens)/config" />
+      <Stack.Screen name="screens/config" />
       
       {/* Tela de Notas Fiscais */}
-      <Stack.Screen name="(screens)/notaFiscal" />
+      <Stack.Screen name="screens/notaFiscal" />
 
       {/* Tela de adicionar Notas Fiscais */}
-      <Stack.Screen name="(screens)/addNota" />
+      <Stack.Screen name="screens/addNota" />
 
       {/* Tela de Financeiro */}
-      <Stack.Screen name="(screens)/financeiro" />
+      <Stack.Screen name="screens/financeiro" />
       
       {/* Tela de Adicionar entrada/saída */}
-      <Stack.Screen name="(screens)/addFinan" />
+      <Stack.Screen name="screens/addFinan" />
       
       {/* Tela de Adicionar evento */}
-      <Stack.Screen name="(screens)/addEvento" />
+      <Stack.Screen name="screens/addEvento" />
       
       {/* Tela de Agenda */}
-      <Stack.Screen name="(screens)/agenda" />
+      <Stack.Screen name="screens/agenda" />
       
       {/* Tela de Agenda */}
-      <Stack.Screen name="(screens)/estoque" />
+      <Stack.Screen name="screens/estoque" />
       
       {/* Tela de Agenda */}
-      <Stack.Screen name="(screens)/addEstoque" />
+      <Stack.Screen name="screens/addEstoque" />
+      
+      {/* Tela Gráficos */}
+      <Stack.Screen name="screens/graficos" />
     </Stack>
   );
 }

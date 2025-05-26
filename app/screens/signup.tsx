@@ -9,10 +9,12 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  Image,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import * as ImagePicker from "expo-image-picker";
 import * as SplashScreen from "expo-splash-screen";
 import { useRouter } from "expo-router";
 
@@ -25,6 +27,7 @@ const CadastroPage: React.FC = () => {
   const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [confirmarSenhaVisivel, setConfirmarSenhaVisivel] = useState(false);
   const [telefone, setTelefone] = useState("");
+  const [image, setImage] = useState<string | null>(null);
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
 
   useEffect(() => {
@@ -132,6 +135,27 @@ const CadastroPage: React.FC = () => {
     console.log("Cadastro realizado com sucesso!");
   };
 
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== "granted") {
+      alert("Desculpe, precisamos de permissão para acessar suas fotos!");
+      return;
+    }
+
+    // Abrir o seletor de imagens
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: "#2A4D69" }}
@@ -148,6 +172,22 @@ const CadastroPage: React.FC = () => {
           </View>
           <Text style={styles.subtitle}>CADASTRO</Text>
           <View style={styles.inputContainer}>
+            <View style={styles.photoContainer}>
+              <View style={styles.photoCircle}>
+                {image ? (
+                  <Image source={{ uri: image }} style={styles.profileImage} />
+                ) : (
+                  <Text style={styles.photoText}>FOTO</Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.editPhotoButton}
+                onPress={pickImage}
+              >
+                <Feather name="edit-2" size={20} color="#F5F5F5" />
+              </TouchableOpacity>
+            </View>
+
             <Text style={styles.label}>CNPJ:</Text>
             <TextInput
               style={styles.input}
@@ -227,7 +267,7 @@ const CadastroPage: React.FC = () => {
             <Text style={styles.recoverText}>CLIQUE NO BOTÃO ABAIXO</Text>
             <TouchableOpacity
               style={styles.recoverButton}
-              onPress={() => router.push("/(screens)/passwordReset")}
+              onPress={() => router.push("/screens/passwordReset")}
             >
               <Text style={styles.recoverButtonText}>RECUPERAR CONTA</Text>
             </TouchableOpacity>
@@ -318,6 +358,38 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: "BebasNeue",
     color: "#F5F5F5",
+  },
+  photoContainer: {
+    position: "relative",
+    marginTop: 0,
+    alignItems: "center",
+  },
+  photoCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(245, 245, 245, 0.09)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  photoText: {
+    fontSize: 25,
+    fontFamily: "BebasNeue",
+    color: "#F5F5F5",
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+    borderRadius: 60,
+  },
+  editPhotoButton: {
+    position: "absolute",
+    right: "30%",
+    bottom: 0,
+    backgroundColor: "#5D9B9B",
+    borderRadius: 15,
+    padding: 8,
   },
 });
 
