@@ -45,8 +45,9 @@ O BizManager é um aplicativo desenvolvido para auxiliar microempreendedores na 
 
 **Caetano Apollo da Silveira**
 
-- **GitHub:** [https://github.com/caetanoApollo](https://github.com/caetanoApollo)
-- **LinkedIn:** [https://www.linkedin.com/in/caetano-apollo](https://www.linkedin.com/in/caetanoapollo)
+- **GitHub:** [GitHub](https://github.com/caetanoApollo)
+- **LinkedIn:** [LinkedIn](https://www.linkedin.com/in/caetanoapollo)
+- **Calendário Notion:** [Calendário Notion](https://www.notion.so/PP-Desenvolvimento-BizManager-1ea807c5a8fc80c5bfe8c44a4c1a4d09?pvs=4)
 - **E-mail:** [caetanosilveira1908@gmail.com](mailto:caetanosilveira1908@gmail.com)
 
 ## Licença📄
