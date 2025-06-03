@@ -6,7 +6,7 @@ declare module 'expo-router' {
       StaticRoutes:
         | '/'
         | '/screens'
-        | '/screens/index'
+        | '/screens/home'
         | '/screens/signup'
         | '/screens/passwordReset'
         | '/screens/main'

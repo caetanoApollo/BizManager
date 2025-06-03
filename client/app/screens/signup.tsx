@@ -17,9 +17,11 @@ import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import * as ImagePicker from "expo-image-picker";
 import * as SplashScreen from "expo-splash-screen";
 import { useRouter } from "expo-router";
+import { cadastro } from "../services/api";
 
 const CadastroPage: React.FC = () => {
   const router = useRouter();
+  const [nome, setNome] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -99,40 +101,24 @@ const CadastroPage: React.FC = () => {
     return regex.test(email);
   };
 
-  // Validação da senha: no mínimo 8 caracteres, um número e um caractere especial
-  const validarSenha = (senha: string) => {
-    const regex = /^(?=.*\d)(?=.*[\W_]).{8,}$/;
-    return regex.test(senha);
-  };
-
-  const handleCadastro = () => {
+  const handleCadastro = async () => {
     if (!validarEmail(email)) {
-      Alert.alert("Erro: E-mail inválido", "Digite um e-mail válido.");
+      Alert.alert("Erro", "Digite um e-mail válido.");
       return;
     }
-
-    if (cnpj.length !== 18) {
-      Alert.alert("Erro: CNPJ inválido", "Digite um CNPJ válido.");
-      return;
-    }
-
-    if (senha !== confirmarSenha) {
-      Alert.alert(
-        "Erro: Senhas não coincidem",
-        "As senhas digitadas devem ser iguais."
+    try {
+      await cadastro(
+        nome,
+        email,
+        telefone,
+        cnpj,
+        senha
       );
-      return;
+      Alert.alert("Sucesso", "Cadastro realizado com sucesso!");
+      router.push("/screens/home");
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Erro ao cadastrar.");
     }
-
-    if (!validarSenha(senha)) {
-      Alert.alert(
-        "Erro: A senha não cumpre os requisitos",
-        "A senha deve ter no mínimo 8 caracteres, incluindo um número e um caractere especial."
-      );
-      return;
-    }
-
-    console.log("Cadastro realizado com sucesso!");
   };
 
   const pickImage = async () => {
@@ -147,7 +133,7 @@ const CadastroPage: React.FC = () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: [4, 3],
       quality: 1,
     });
 
@@ -187,7 +173,6 @@ const CadastroPage: React.FC = () => {
                 <Feather name="edit-2" size={20} color="#F5F5F5" />
               </TouchableOpacity>
             </View>
-
             <Text style={styles.label}>CNPJ:</Text>
             <TextInput
               style={styles.input}
@@ -196,6 +181,14 @@ const CadastroPage: React.FC = () => {
               placeholder="Digite seu CNPJ"
               placeholderTextColor="#ccc"
               maxLength={18}
+            />
+            <Text style={styles.label}>NOME:</Text>
+            <TextInput
+              style={styles.input}
+              value={nome}
+              onChangeText={setNome}
+              placeholder="Digite seu nome"
+              placeholderTextColor="#ccc"
             />
             <Text style={styles.label}>EMAIL:</Text>
             <TextInput
@@ -214,7 +207,7 @@ const CadastroPage: React.FC = () => {
               placeholder="Digite seu telefone"
               placeholderTextColor="#ccc"
               keyboardType="phone-pad"
-              maxLength={15} // Formato: (XX) XXXXX-XXXX
+              maxLength={15}
             />
             <Text style={styles.label}>SENHA:</Text>
             <View style={styles.passwordContainer}>

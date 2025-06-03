@@ -10,7 +10,7 @@ export default function Layout() {
   ) : (
     <Stack screenOptions={{ headerShown: false }}>
       {/* Tela inicial */}
-      <Stack.Screen name="screens/index" />
+      <Stack.Screen name="screens/home" />
 
       {/* Tela de cadastro */}
       <Stack.Screen name="screens/signup" />  

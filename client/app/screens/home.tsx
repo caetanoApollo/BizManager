@@ -8,18 +8,31 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import * as SplashScreen from "expo-splash-screen";
 import { useRouter } from "expo-router";
+import { login } from "../services/api";
 
 export default function HomePage() {
   const router = useRouter();
   const [cnpj, setCnpj] = useState("");
+  const [senha, setSenha] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
+
+  const handleLogin = async () => {
+    try {
+      const user = await login(cnpj, senha);
+      Alert.alert("Sucesso", `Bem-vindo, ${user.nome || "usuário"}!`);
+      router.push("/screens/main");
+    } catch (err: any) {
+      Alert.alert("Erro", err.message || "Erro ao fazer login.");
+    }
+  };
 
   useEffect(() => {
     async function prepare() {
@@ -35,7 +48,7 @@ export default function HomePage() {
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
-    return null; // Retorne null ou um componente vazio enquanto as fontes estão carregando
+    return null;
   }
 
   // Função para formatar o CNPJ
@@ -110,6 +123,8 @@ export default function HomePage() {
                 placeholder="Digite sua senha"
                 secureTextEntry={!passwordVisible}
                 placeholderTextColor="#ccc"
+                value={senha}
+                onChangeText={setSenha}
               />
               <TouchableOpacity
                 onPress={handlePasswordVisibility}
@@ -133,7 +148,7 @@ export default function HomePage() {
               </Text>
             </Text>
 
-            <TouchableOpacity style={styles.button} onPress={() => router.push("/screens/main")}>
+            <TouchableOpacity style={styles.button} onPress={handleLogin}>
               <Text style={styles.buttonText}>ENTRAR</Text>
             </TouchableOpacity>
           </View>
