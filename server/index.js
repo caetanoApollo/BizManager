@@ -1,13 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const db = require('./db');
+const db = require('./config/db');
 
 const app = express();
 app.use(cors());
-// app.use(express.json());
 
-// Testa conexão com o banco
 (async () => {
     try {
         await db.query('SELECT 1');
