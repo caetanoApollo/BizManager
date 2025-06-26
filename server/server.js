@@ -5,6 +5,7 @@ const db = require('./config/db');
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 (async () => {
     try {
@@ -19,6 +20,10 @@ app.use(cors());
 // Rotas de usuário
 const userRoutes = require('./routers/userRouter');
 app.use('/api', userRoutes);
+
+// Rotas de cliente
+const clientRoutes = require('./routers/clientRouter');
+app.use('/api', clientRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

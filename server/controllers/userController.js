@@ -1,4 +1,4 @@
-const db = require('../db');
+const db = require('../config/db');
 const bcrypt = require('bcrypt');
 
 exports.cadastrarUsuario = async (req, res) => {
@@ -27,29 +27,80 @@ exports.cadastrarUsuario = async (req, res) => {
     }
 };
 
-// Login
+
 exports.loginUsuario = async (req, res) => {
-    const { cnpj, senha } = req.body;
-    if (!cnpj || !senha) {
-        console.warn('Tentativa de login sem CNPJ ou senha.');
-        return res.status(400).json({ error: 'CNPJ e senha são obrigatórios.' });
+    const { identificador, senha } = req.body; 
+    if (!identificador || !senha) {
+        console.warn('Tentativa de login sem identificador ou senha.');
+        return res.status(400).json({ error: 'Identificador (CNPJ ou E-mail) e senha são obrigatórios.' });
     }
     try {
-        const [rows] = await db.query('SELECT * FROM usuarios WHERE cnpj = ?', [cnpj]);
+        const [rows] = await db.query('SELECT * FROM usuarios WHERE cnpj = ? OR email = ?', [identificador, identificador]);
         if (rows.length === 0) {
-            console.warn(`Tentativa de login com CNPJ não cadastrado: ${cnpj}`);
+            console.warn(`Tentativa de login com identificador não cadastrado: ${identificador}`);
             return res.status(401).json({ error: 'Usuário não encontrado.' });
         }
         const usuario = rows[0];
         const senhaValida = await bcrypt.compare(senha, usuario.senha);
         if (!senhaValida) {
-            console.warn(`Senha incorreta para o CNPJ: ${cnpj}`);
-            return res.status(401).json({ error: 'Senha incorreta.' }); 
+            console.warn(`Senha incorreta para o identificador: ${identificador}`);
+            return res.status(401).json({ error: 'Senha incorreta.' });
         }
-        console.log(`Login realizado com sucesso para o usuário ID ${usuario.id}, CNPJ ${usuario.cnpj}`);
+        console.log(`Login realizado com sucesso para o usuário ID ${usuario.id}, Identificador ${identificador}`);
         res.json({ id: usuario.id, nome: usuario.nome, email: usuario.email, telefone: usuario.telefone, cnpj: usuario.cnpj });
     } catch (err) {
         console.error('Erro ao fazer login:', err);
         res.status(500).json({ error: 'Erro ao fazer login.' });
+    }
+};
+
+exports.editarUsuario = async (req, res) => {
+    const { id } = req.params;
+    const { nome, email, telefone, cnpj, senha } = req.body;
+    const foto_perfil = req.file ? req.file.buffer : undefined;
+
+    try {
+        // Verifica se o usuário existe
+        const [rows] = await db.query('SELECT * FROM usuarios WHERE id = ?', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+
+        let campos = [];
+        let valores = [];
+        if (nome) { campos.push('nome = ?'); valores.push(nome); }
+        if (email) { campos.push('email = ?'); valores.push(email); }
+        if (telefone) { campos.push('telefone = ?'); valores.push(telefone); }
+        if (cnpj) { campos.push('cnpj = ?'); valores.push(cnpj); }
+        if (foto_perfil !== undefined) { campos.push('foto_perfil = ?'); valores.push(foto_perfil); }
+        if (senha) {
+            const hashedPassword = await bcrypt.hash(senha, 10);
+            campos.push('senha = ?');
+            valores.push(hashedPassword);
+        }
+        if (campos.length === 0) {
+            return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
+        }
+        valores.push(id);
+
+        await db.query(`UPDATE usuarios SET ${campos.join(', ')} WHERE id = ?`, valores);
+        res.json({ message: 'Usuário atualizado com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao editar usuário:', err);
+        res.status(500).json({ error: 'Erro ao editar usuário.' });
+    }
+};
+
+exports.excluirUsuario = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [result] = await db.query('DELETE FROM usuarios WHERE id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+        res.json({ message: 'Usuário excluído com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao excluir usuário:', err);
+        res.status(500).json({ error: 'Erro ao excluir usuário.' });
     }
 };

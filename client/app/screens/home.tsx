@@ -1,3 +1,4 @@
+// client/app/screens/home.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -15,18 +16,18 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import * as SplashScreen from "expo-splash-screen";
 import { useRouter } from "expo-router";
-import { login } from "../services/api";
+import { login } from "../services/api"; //
 
 export default function HomePage() {
   const router = useRouter();
-  const [cnpj, setCnpj] = useState("");
+  const [identificador, setIdentificador] = useState(""); // Alterado de cnpj para identificador
   const [senha, setSenha] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
 
   const handleLogin = async () => {
     try {
-      const user = await login(cnpj, senha);
+      const user = await login(identificador, senha); //
       Alert.alert("Sucesso", `Bem-vindo, ${user.nome || "usuário"}!`);
       router.push("/screens/main");
     } catch (err: any) {
@@ -51,7 +52,7 @@ export default function HomePage() {
     return null;
   }
 
-  // Função para formatar o CNPJ
+  // Função para formatar o CNPJ (ainda útil se o usuário digitar um CNPJ)
   const formatCNPJ = (value: string) => {
     const cleanedValue = value.replace(/[^a-zA-Z0-9]/g, "");
     const isAlphanumeric = /[a-zA-Z]/.test(cleanedValue);
@@ -79,9 +80,13 @@ export default function HomePage() {
     }
   };
 
-  const handleCNPJChange = (value: string) => {
-    const formattedCNPJ = formatCNPJ(value);
-    setCnpj(formattedCNPJ);
+  const handleIdentificadorChange = (value: string) => {
+    // Pode tentar formatar como CNPJ, mas permitir que seja digitado como e-mail
+    if (value.includes('@')) {
+      setIdentificador(value);
+    } else {
+      setIdentificador(formatCNPJ(value));
+    }
   };
 
   const handlePasswordVisibility = () => {
@@ -106,14 +111,14 @@ export default function HomePage() {
           <Text style={styles.subtitle}>LOGIN</Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>CNPJ:</Text>
+            <Text style={styles.label}>CNPJ ou E-MAIL:</Text>
             <TextInput
               style={styles.input}
-              placeholder="Digite seu CNPJ"
+              placeholder="Digite seu CNPJ ou E-mail"
               placeholderTextColor="#ccc"
-              value={cnpj}
-              onChangeText={handleCNPJChange}
-              maxLength={18}
+              value={identificador}
+              onChangeText={handleIdentificadorChange}
+              maxLength={50} 
             />
 
             <Text style={styles.label}>SENHA:</Text>

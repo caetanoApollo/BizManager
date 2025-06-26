@@ -88,6 +88,13 @@ const Nav: React.FC<NavProps> = ({
                     color={isActive("/calendar") ? "#FFFFFF" : iconColor}
                 />
             </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/screens/clientes")}>
+                <MaterialCommunityIcons
+                    name="account-group" 
+                    size={iconSize}
+                    color={isActive("/screens/clientes") ? "#FFFFFF" : iconColor}
+                />
+            </TouchableOpacity>
         </View>
     );
 };

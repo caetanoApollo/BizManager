@@ -1,12 +1,13 @@
+// client/app/_layout.tsx
 import React, { useState } from "react";
 import { Stack } from "expo-router";
-import LoadingScreen from "./components/loading";
+import LoadingScreen from "./components/loading"; //
 
 export default function Layout() {
   const [loading, setLoading] = useState(true);
 
   return loading ? (
-    <LoadingScreen onFinish={() => setLoading(false)} />
+    <LoadingScreen onFinish={() => setLoading(false)} /> //
   ) : (
     <Stack screenOptions={{ headerShown: false }}>
       {/* Tela inicial */}
@@ -42,14 +43,20 @@ export default function Layout() {
       {/* Tela de Agenda */}
       <Stack.Screen name="screens/agenda" />
       
-      {/* Tela de Agenda */}
+      {/* Tela de Estoque */}
       <Stack.Screen name="screens/estoque" />
       
-      {/* Tela de Agenda */}
+      {/* Tela de Adicionar Estoque */}
       <Stack.Screen name="screens/addEstoque" />
       
       {/* Tela Gráficos */}
       <Stack.Screen name="screens/graficos" />
+
+      {/* Nova Tela de Clientes */}
+      <Stack.Screen name="screens/clientes" />
+      
+      {/* Nova Tela de Adicionar Cliente */}
+      <Stack.Screen name="screens/addCliente" />
     </Stack>
   );
 }
