@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const db = require('./config/db');
+const swaggerUi = require('swagger-ui-express'); 
+const swaggerSpec = require('./config/swaggerConfig');
 
 const app = express();
 app.use(cors());
@@ -17,13 +19,28 @@ app.use(express.json());
     }
 })();
 
-// Rotas de usuário
 const userRoutes = require('./routers/userRouter');
 app.use('/api', userRoutes);
 
-// Rotas de cliente
 const clientRoutes = require('./routers/clientRouter');
 app.use('/api', clientRoutes);
+
+const productRoutes = require('./routers/productRouter');
+app.use('/api', productRoutes);
+
+const financialRoutes = require('./routers/financialRouter');
+app.use('/api', financialRoutes);
+
+const invoiceRoutes = require('./routers/invoiceRouter');
+app.use('/api', invoiceRoutes);
+
+const scheduledServiceRoutes = require('./routers/scheduledServiceRouter');
+app.use('/api', scheduledServiceRoutes);
+
+const configRoutes = require('./routers/configRouter');
+app.use('/api', configRoutes);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); 
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

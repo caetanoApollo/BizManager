@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 exports.cadastrarUsuario = async (req, res) => {
     const { nome, email, senha, telefone, cnpj } = req.body;
@@ -46,8 +47,14 @@ exports.loginUsuario = async (req, res) => {
             console.warn(`Senha incorreta para o identificador: ${identificador}`);
             return res.status(401).json({ error: 'Senha incorreta.' });
         }
+
+        const token = jwt.sign(
+            { id: usuario.id, email: usuario.email },
+            process.env.JWT_SECRET, 
+            { expiresIn: '1h' } 
+        );
         console.log(`Login realizado com sucesso para o usuário ID ${usuario.id}, Identificador ${identificador}`);
-        res.json({ id: usuario.id, nome: usuario.nome, email: usuario.email, telefone: usuario.telefone, cnpj: usuario.cnpj });
+        res.json({token, id: usuario.id, nome: usuario.nome, email: usuario.email, telefone: usuario.telefone, cnpj: usuario.cnpj });
     } catch (err) {
         console.error('Erro ao fazer login:', err);
         res.status(500).json({ error: 'Erro ao fazer login.' });
@@ -60,7 +67,6 @@ exports.editarUsuario = async (req, res) => {
     const foto_perfil = req.file ? req.file.buffer : undefined;
 
     try {
-        // Verifica se o usuário existe
         const [rows] = await db.query('SELECT * FROM usuarios WHERE id = ?', [id]);
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Usuário não encontrado.' });
