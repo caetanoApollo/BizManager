@@ -1,4 +1,10 @@
-export const BASE_URL = "http://192.168.137.1:3001"; // troque para localhost se for testar no navegar e para o IP do notebook quando for testar no celular
+export const BASE_URL = "http://192.168.2.113:3001"; // troque para localhost se for testar no navegar e para o IP do notebook quando for testar no celular
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+async function getAuthHeader() {
+    const token = await AsyncStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 // Função para login
 export async function login(identificador: string, senha: string) {
@@ -61,7 +67,16 @@ export async function createClient(usuario_id: number, nome: string, email: stri
 
 // função para obter clientes por ID de usuário
 export async function getClients(usuario_id: number) {
-    const response = await fetch(`${BASE_URL}/api/clients/${usuario_id}`);
+    const authHeader = await getAuthHeader();
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+    if (authHeader.Authorization) {
+        headers["Authorization"] = authHeader.Authorization;
+    }
+    const response = await fetch(`${BASE_URL}/api/clients/${usuario_id}`, {
+        headers
+    });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
     return data;
@@ -69,9 +84,16 @@ export async function getClients(usuario_id: number) {
 
 // função para atualizar cliente
 export async function updateClient(id: number, usuario_id: number, nome: string, email: string, telefone: string, endereco: string) {
+    const authHeader = await getAuthHeader();
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+    if (authHeader.Authorization) {
+        headers["Authorization"] = authHeader.Authorization;
+    }
     const response = await fetch(`${BASE_URL}/api/clients/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ usuario_id, nome, email, telefone, endereco }),
     });
     const data = await response.json();
@@ -81,9 +103,16 @@ export async function updateClient(id: number, usuario_id: number, nome: string,
 
 //função para excluir cliente
 export async function deleteClient(id: number, usuario_id: number) {
+    const authHeader = await getAuthHeader();
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+    if (authHeader.Authorization) {
+        headers["Authorization"] = authHeader.Authorization;
+    }
     const response = await fetch(`${BASE_URL}/api/clients/${id}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ usuario_id }),
     });
     const data = await response.json();

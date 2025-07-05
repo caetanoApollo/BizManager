@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginBottom: 10,
     width: "100%",
-    fontFamily: "BebasNeue",
+    fontFamily: "Montserrat",
   },
   label: {
     color: "#F5F5F5",

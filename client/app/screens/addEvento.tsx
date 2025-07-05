@@ -166,6 +166,7 @@ const styles = StyleSheet.create({
         padding: 12,
         color: "#fff",
         fontSize: 18,
+        fontFamily: "Montserrat",
     },
     row: {
         flexDirection: "row",

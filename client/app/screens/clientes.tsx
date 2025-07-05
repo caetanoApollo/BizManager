@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"; // Adicionado useCallback
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -8,12 +8,12 @@ import {
     Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { MaterialCommunityIcons, AntDesign, FontAwesome } from "@expo/vector-icons"; 
+import { MaterialCommunityIcons, AntDesign, FontAwesome } from "@expo/vector-icons";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import * as SplashScreen from "expo-splash-screen";
-import { useRouter, useFocusEffect } from "expo-router"; 
+import { useRouter, useFocusEffect } from "expo-router";
 import { Nav, addButton, Header } from "../components/utils";
-import { getClients, deleteClient } from "../services/api"; 
+import { getClients, deleteClient } from "../services/api";
 
 interface Client {
     id: number;
@@ -27,39 +27,33 @@ interface Client {
 
 const ClientsScreen: React.FC = () => {
     const router = useRouter();
-    const [clients, setClients] = useState<Client[]>([]); // Tipagem para o estado
-    const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
+    const [clients, setClients] = useState<Client[]>([]);
+    const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular }); 
 
-    useEffect(() => {
-        async function prepare() {
-            await SplashScreen.preventAutoHideAsync();
-        }
-        prepare();
-    }, []);
-
-    useEffect(() => {
-        if (fontsLoaded) {
-            SplashScreen.hideAsync();
-        }
-    }, [fontsLoaded]);
-
-    if (!fontsLoaded) {
-        return null;
-    }
-
-    const fetchClients = useCallback(async () => {
-        // TODO: Obtenha o ID do usuário logado de forma segura (ex: AsyncStorage ou Context API)
-        // Por enquanto, usaremos um ID fixo para demonstração.
-        const userId = 1;
+    const fetchClients = useCallback(async () => { 
+        const userId = 1; // TODO: Obtenha o ID do usuário logado de forma segura
         try {
             const fetchedClients = await getClients(userId);
             setClients(fetchedClients);
         } catch (error: any) {
             Alert.alert("Erro", error.message || "Não foi possível carregar os clientes.");
         }
-    }, []); // Dependências vazias, pois só queremos que recarregue no foco
+    }, []);
 
-    useFocusEffect(
+    useEffect(() => { 
+        async function prepare() {
+            await SplashScreen.preventAutoHideAsync();
+        }
+        prepare();
+    }, []);
+
+    useEffect(() => { 
+        if (fontsLoaded) {
+            SplashScreen.hideAsync();
+        }
+    }, [fontsLoaded]);
+
+    useFocusEffect( // Hook 5
         useCallback(() => {
             fetchClients();
         }, [fetchClients])
@@ -67,7 +61,7 @@ const ClientsScreen: React.FC = () => {
 
     const handleEditClient = (client: Client) => {
         router.push({
-            pathname: "/screens/addCliente", // Reutiliza a tela de adição para edição
+            pathname: "/screens/addCliente",
             params: { clientId: client.id, clientName: client.nome, clientEmail: client.email, clientPhone: client.telefone, clientAddress: client.endereco },
         });
     };
@@ -84,12 +78,11 @@ const ClientsScreen: React.FC = () => {
                 {
                     text: "Excluir",
                     onPress: async () => {
-                        // TODO: Obtenha o ID do usuário logado de forma segura
-                        const userId = 1;
+                        const userId = 1; // TODO: Obtenha o ID do usuário logado de forma segura
                         try {
                             await deleteClient(clientId, userId);
                             Alert.alert("Sucesso", "Cliente excluído com sucesso!");
-                            fetchClients(); // Recarrega a lista de clientes
+                            fetchClients();
                         } catch (error: any) {
                             Alert.alert("Erro", error.message || "Erro ao excluir cliente.");
                         }
@@ -99,18 +92,16 @@ const ClientsScreen: React.FC = () => {
         );
     };
 
+    if (!fontsLoaded) {
+        return null; 
+    }
+
     return (
         <LinearGradient colors={["#2A4D69", "#5D9B9B"]} style={styles.container}>
             <View style={styles.container}>
                 <Header />
 
                 <View style={styles.section}>
-                    <TouchableOpacity
-                        onPress={() => router.back()}
-                        style={{ marginRight: 10 }}
-                    >
-                        <AntDesign name="arrowleft" size={30} color="#F5F5F5" />
-                    </TouchableOpacity>
                     <MaterialCommunityIcons name="account-group" size={30} color="#fff" />
                     <Text style={styles.sectionTitle}>CLIENTES</Text>
                 </View>
@@ -119,7 +110,7 @@ const ClientsScreen: React.FC = () => {
                     <View style={styles.tableHeader}>
                         <Text style={styles.tableHeaderText}>Nome</Text>
                         <Text style={styles.tableHeaderText}>Contato</Text>
-                        <Text style={styles.tableHeaderText}>Ações</Text> {/* Nova coluna */}
+                        <Text style={styles.tableHeaderText}>Ações</Text>
                     </View>
                     <FlatList
                         data={clients}
@@ -161,6 +152,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingTop: 20,
+        marginRight: 200,
         width: "80%",
         justifyContent: "flex-start",
         marginBottom: 20,
@@ -172,7 +164,7 @@ const styles = StyleSheet.create({
         fontSize: 35,
     },
     tableContainer: {
-        width: "90%",
+        width: 320,
         height: 430,
         backgroundColor: "rgba(255, 255, 255, 0.2)",
         padding: 15,

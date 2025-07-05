@@ -1,4 +1,4 @@
-const db = require('../config/db');
+const db = require('../config/database');    
 
 exports.createClient = async (req, res) => {
     const { usuario_id, nome, email, telefone, endereco } = req.body;

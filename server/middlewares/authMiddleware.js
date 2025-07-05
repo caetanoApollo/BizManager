@@ -7,7 +7,7 @@ const authMiddleware = (req, res, next) => {
         return res.status(401).json({ error: 'Token não fornecido.' });
     }
 
-    const [, token] = authHeader.split(' '); // Assume formato "Bearer TOKEN"
+    const [, token] = authHeader.split(' '); 
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);

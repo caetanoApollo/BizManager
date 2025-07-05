@@ -112,7 +112,8 @@ const CadastroPage: React.FC = () => {
         email,
         telefone,
         cnpj,
-        senha
+        senha,
+        image || undefined // Passa a imagem selecionada
       );
       Alert.alert("Sucesso", "Cadastro realizado com sucesso!");
       router.push("/screens/home");
@@ -131,7 +132,7 @@ const CadastroPage: React.FC = () => {
 
     // Abrir o seletor de imagens
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'images',
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginBottom: 10,
     width: "100%",
-    fontFamily: "BebasNeue",
+    fontFamily: "Montserrat",
   },
   passwordContainer: {
     flexDirection: "row",

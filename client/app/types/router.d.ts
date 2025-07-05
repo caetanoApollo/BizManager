@@ -1,4 +1,3 @@
-// client/app/types/router.d.ts
 import 'expo-router';
 
 declare module 'expo-router' {
@@ -21,8 +20,8 @@ declare module 'expo-router' {
         | '/screens/estoque'      
         | '/screens/addEstoque'      
         | '/screens/graficos'      
-        | '/screens/clientes' // Nova rota para clientes
-        | '/screens/addCliente' // Nova rota para adicionar cliente
+        | '/screens/clientes' 
+        | '/screens/addCliente' 
         | '/_sitemap'
         | '/signup';
       DynamicRoutes: never;
@@ -30,3 +29,4 @@ declare module 'expo-router' {
     }
   }
 }
+

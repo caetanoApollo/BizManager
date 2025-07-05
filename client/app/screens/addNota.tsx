@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginBottom: 10,
     width: "100%",
-    fontFamily: "BebasNeue",
+    fontFamily: "Montserrat",
   },
   icon: { position: "absolute", right: 10, bottom: 20 },
   boxTitle: {

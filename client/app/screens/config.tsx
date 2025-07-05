@@ -102,7 +102,7 @@ const SettingsPage = () => {
 
     // Abrir o seletor de imagens
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'images',
       allowsEditing: true,
       aspect: [1, 1],
       quality: 1,
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     padding: 10,
     color: "#F5F5F5",
     fontSize: 20,
-    fontFamily: "BebasNeue",
+    fontFamily: "Montserrat",
   },
   updateButton: {
     backgroundColor: "#5D9B9B",

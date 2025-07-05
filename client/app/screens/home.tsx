@@ -14,16 +14,17 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import * as SplashScreen from "expo-splash-screen";
 import { useRouter } from "expo-router";
-import { login } from "../services/api"; //
+import { login } from "../services/api"; 
 
 export default function HomePage() {
   const router = useRouter();
-  const [identificador, setIdentificador] = useState(""); // Alterado de cnpj para identificador
+  const [identificador, setIdentificador] = useState("");
   const [senha, setSenha] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
+  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
   const handleLogin = async () => {
     try {
@@ -52,42 +53,24 @@ export default function HomePage() {
     return null;
   }
 
-  // Função para formatar o CNPJ (ainda útil se o usuário digitar um CNPJ)
-  const formatCNPJ = (value: string) => {
-    const cleanedValue = value.replace(/[^a-zA-Z0-9]/g, "");
-    const isAlphanumeric = /[a-zA-Z]/.test(cleanedValue);
+function formatCNPJ(value: string) {
+  const numbers = value.replace(/\D/g, "");
+  let cnpj = numbers;
+  if (cnpj.length > 2) cnpj = cnpj.replace(/^(\d{2})(\d)/, "$1.$2");
+  if (cnpj.length > 6) cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+  if (cnpj.length > 10) cnpj = cnpj.replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3/$4");
+  if (cnpj.length > 15) cnpj = cnpj.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5");
+  return cnpj;
+}
 
-    if (isAlphanumeric) {
-      if (cleanedValue.length <= 8) {
-        return cleanedValue;
-      } else if (cleanedValue.length <= 12) {
-        return `${cleanedValue.slice(0, 8)}-${cleanedValue.slice(8)}`;
-      } else {
-        return `${cleanedValue.slice(0, 8)}-${cleanedValue.slice(8, 12)}-${cleanedValue.slice(12, 14)}`;
-      }
-    } else {
-      if (cleanedValue.length <= 2) {
-        return cleanedValue;
-      } else if (cleanedValue.length <= 5) {
-        return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(2)}`;
-      } else if (cleanedValue.length <= 8) {
-        return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(2, 5)}.${cleanedValue.slice(5)}`;
-      } else if (cleanedValue.length <= 12) {
-        return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(2, 5)}.${cleanedValue.slice(5, 8)}/${cleanedValue.slice(8)}`;
-      } else {
-        return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(2, 5)}.${cleanedValue.slice(5, 8)}/${cleanedValue.slice(8, 12)}-${cleanedValue.slice(12, 14)}`;
-      }
-    }
-  };
-
-  const handleIdentificadorChange = (value: string) => {
-    // Pode tentar formatar como CNPJ, mas permitir que seja digitado como e-mail
-    if (value.includes('@')) {
-      setIdentificador(value);
-    } else {
-      setIdentificador(formatCNPJ(value));
-    }
-  };
+const handleIdentificadorChange = (value: string) => {
+  if (/[a-zA-Z@]/.test(value)) {
+    setIdentificador(value); 
+  } else {
+    const onlyNumbers = value.replace(/\D/g, "");
+    setIdentificador(formatCNPJ(onlyNumbers));
+  }
+};
 
   const handlePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
@@ -118,7 +101,7 @@ export default function HomePage() {
               placeholderTextColor="#ccc"
               value={identificador}
               onChangeText={handleIdentificadorChange}
-              maxLength={50} 
+              maxLength={50}
             />
 
             <Text style={styles.label}>SENHA:</Text>
@@ -215,10 +198,10 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     color: "#F5F5F5",
-    fontSize: 20,
+    fontSize: 14,
     marginBottom: 10,
     width: "100%",
-    fontFamily: "BebasNeue",
+    fontFamily: "Montserrat",
   },
   passwordContainer: {
     flexDirection: "row",

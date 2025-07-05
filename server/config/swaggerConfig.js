@@ -10,7 +10,7 @@ const options = {
         },
         servers: [
             {
-                url: 'http://localhost:3001/api', // Ajuste conforme seu ambiente
+                url: 'http://localhost:3001/api', 
                 description: 'Servidor de Desenvolvimento',
             },
         ],
