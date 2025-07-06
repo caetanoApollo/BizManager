@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import * as SplashScreen from "expo-splash-screen";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 import { login } from "../services/api"; 
 
@@ -26,15 +27,21 @@ export default function HomePage() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
-  const handleLogin = async () => {
-    try {
-      const user = await login(identificador, senha); //
-      Alert.alert("Sucesso", `Bem-vindo, ${user.nome || "usuário"}!`);
-      router.push("/screens/main");
-    } catch (err: any) {
-      Alert.alert("Erro", err.message || "Erro ao fazer login.");
+const handleLogin = async () => {
+  try {
+    const user = await login(identificador, senha);
+    if (user.token) {
+      await AsyncStorage.setItem('token', user.token);
     }
-  };
+    if (user.usuario_id) {
+      await AsyncStorage.setItem('usuario_id', String(user.usuario_id));
+    }
+    Alert.alert("Sucesso", `Bem-vindo, ${user.nome || "usuário"}!`);
+    router.push("/screens/main");
+  } catch (err: any) {
+    Alert.alert("Erro", err.message || "Erro ao fazer login.");
+  }
+};
 
   useEffect(() => {
     async function prepare() {

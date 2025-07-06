@@ -30,7 +30,7 @@ exports.cadastrarUsuario = async (req, res) => {
 
 
 exports.loginUsuario = async (req, res) => {
-    const { identificador, senha } = req.body; 
+    const { identificador, senha } = req.body;
     if (!identificador || !senha) {
         console.warn('Tentativa de login sem identificador ou senha.');
         return res.status(400).json({ error: 'Identificador (CNPJ ou E-mail) e senha são obrigatórios.' });
@@ -50,11 +50,11 @@ exports.loginUsuario = async (req, res) => {
 
         const token = jwt.sign(
             { id: usuario.id, email: usuario.email },
-            process.env.JWT_SECRET, 
-            { expiresIn: '1h' } 
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
         );
         console.log(`Login realizado com sucesso para o usuário ID ${usuario.id}, Identificador ${identificador}`);
-        res.json({token, id: usuario.id, nome: usuario.nome, email: usuario.email, telefone: usuario.telefone, cnpj: usuario.cnpj });
+        res.json({ token, usuario_id: usuario.id, nome: usuario.nome, email: usuario.email, telefone: usuario.telefone, cnpj: usuario.cnpj });
     } catch (err) {
         console.error('Erro ao fazer login:', err);
         res.status(500).json({ error: 'Erro ao fazer login.' });

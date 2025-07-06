@@ -1,4 +1,4 @@
-export const BASE_URL = "http://192.168.2.113:3001"; // troque para localhost se for testar no navegar e para o IP do notebook quando for testar no celular
+export const BASE_URL = "http://192.168.2.111:3001"; // troque para localhost se for testar no navegar e para o IP do notebook quando for testar no celular
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 async function getAuthHeader() {
@@ -14,6 +14,7 @@ export async function login(identificador: string, senha: string) {
         body: JSON.stringify({ identificador, senha }),
     });
     const data = await response.json();
+    console.log("informações do user", data);
     if (!response.ok) throw new Error(data.error);
     return data;
 }
@@ -54,11 +55,18 @@ export async function cadastro(
 }
 
 // função para criar cliente
-export async function createClient(usuario_id: number, nome: string, email: string, telefone: string, endereco: string) {
+export async function createClient(nome: string, email: string, telefone: string, endereco: string) {
+    const authHeader = await getAuthHeader();
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+    if (authHeader && typeof authHeader.Authorization === "string") {
+        headers["Authorization"] = authHeader.Authorization;
+    }
     const response = await fetch(`${BASE_URL}/api/clients`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuario_id, nome, email, telefone, endereco }),
+        headers,
+        body: JSON.stringify({ nome, email, telefone, endereco }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
@@ -83,18 +91,18 @@ export async function getClients(usuario_id: number) {
 }
 
 // função para atualizar cliente
-export async function updateClient(id: number, usuario_id: number, nome: string, email: string, telefone: string, endereco: string) {
+export async function updateClient(id: number, nome: string, email: string, telefone: string, endereco: string) {
     const authHeader = await getAuthHeader();
     const headers: Record<string, string> = {
         "Content-Type": "application/json",
     };
-    if (authHeader.Authorization) {
+    if (authHeader && typeof authHeader.Authorization === "string") {
         headers["Authorization"] = authHeader.Authorization;
     }
     const response = await fetch(`${BASE_URL}/api/clients/${id}`, {
         method: "PUT",
         headers,
-        body: JSON.stringify({ usuario_id, nome, email, telefone, endereco }),
+        body: JSON.stringify({ nome, email, telefone, endereco }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);

@@ -13,22 +13,24 @@ import {
 import { MaterialCommunityIcons, AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import * as SplashScreen from "expo-splash-screen";
-import { useRouter, useLocalSearchParams } from "expo-router"; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Header, Nav } from "../components/utils";
-import { createClient, updateClient } from "../services/api"; 
+import { createClient, updateClient } from "../services/api";
 
 const AddClientPage: React.FC = () => {
     const router = useRouter();
     const params = useLocalSearchParams();
     const clientId = params.clientId ? Number(params.clientId) : undefined;
-    const isEditing = clientId !== undefined; 
+    const isEditing = clientId !== undefined;
 
     const [name, setName] = useState(isEditing ? (params.clientName as string || '') : "");
     const [email, setEmail] = useState(isEditing ? (params.clientEmail as string || '') : "");
     const [phone, setPhone] = useState(isEditing ? (params.clientPhone as string || '') : "");
     const [address, setAddress] = useState(isEditing ? (params.clientAddress as string || '') : "");
-    const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
+    const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
     useEffect(() => {
         async function prepare() {
@@ -53,15 +55,24 @@ const AddClientPage: React.FC = () => {
             return;
         }
 
-        // TODO: Obtenha o ID do usuário logado de forma segura (ex: AsyncStorage ou Context API)
-        const userId = 1; 
-
         try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                Alert.alert("Erro", "Usuário não autenticado.");
+                return;
+            }
+
+            const usuarioIdString = await AsyncStorage.getItem('usuario_id');
+            const usuarioId = usuarioIdString ? Number(usuarioIdString) : undefined;
+            if (!usuarioId) {
+                Alert.alert("Erro", "ID do usuário não encontrado.");
+                return;
+            }
             if (isEditing && clientId) {
-                await updateClient(clientId, userId, name, email, phone, address);
+                await updateClient(clientId, name, email, phone, address);
                 Alert.alert("Sucesso", "Cliente atualizado com sucesso!");
             } else {
-                await createClient(userId, name, email, phone, address);
+                await createClient(name, email, phone, address);
                 Alert.alert("Sucesso", "Cliente cadastrado com sucesso!");
             }
             router.push("/screens/clientes");
@@ -93,7 +104,7 @@ const AddClientPage: React.FC = () => {
                     <View style={styles.inputContainer}>
                         <View style={styles.boxTitle}>
                             <MaterialCommunityIcons
-                                name={isEditing ? "account-edit" : "account-plus"} 
+                                name={isEditing ? "account-edit" : "account-plus"}
                                 size={30}
                                 color="#F5F5F5"
                                 style={{ marginRight: 10 }}

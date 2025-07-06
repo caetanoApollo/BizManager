@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert 
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import { Header, Nav } from "../components/utils";
 
 const NovoEventoScreen = () => {

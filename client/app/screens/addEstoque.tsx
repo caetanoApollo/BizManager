@@ -13,6 +13,7 @@ import {
 import { MaterialIcons, AntDesign, FontAwesome6 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import * as SplashScreen from "expo-splash-screen";
 import { useRouter } from "expo-router";
 import { Header, Nav } from "../components/utils";
@@ -23,7 +24,7 @@ const AddEstoquePage: React.FC = () => {
   const [quantidade, setQuantidade] = useState("");
   const [fornecedor, setFornecedor] = useState("");
   const [valorProduto, setValorProduto] = useState("");
-  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
+  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
   useEffect(() => {
     async function prepare() {

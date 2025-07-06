@@ -14,6 +14,7 @@ import {
 import { MaterialIcons, AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import * as SplashScreen from "expo-splash-screen";
 import { useRouter } from "expo-router";
 import { Picker } from '@react-native-picker/picker';
@@ -28,7 +29,7 @@ const AddNotaPage: React.FC = () => {
   const [valorTotal, setValorTotal] = useState("");
   const [descricao, setDescricao] = useState("");
   const [showServicos, setShowServicos] = useState(false);
-  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
+  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
   const pickerHeight = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
