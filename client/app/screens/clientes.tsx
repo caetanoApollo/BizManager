@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
         fontSize: 35,
     },
     tableContainer: {
-        width: 320,
+        width: 370,
         height: 430,
         backgroundColor: "rgba(255, 255, 255, 0.2)",
         padding: 15,

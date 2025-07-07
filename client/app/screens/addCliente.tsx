@@ -69,10 +69,10 @@ const AddClientPage: React.FC = () => {
                 return;
             }
             if (isEditing && clientId) {
-                await updateClient(clientId, name, email, phone, address);
+                await updateClient(usuarioId, clientId, name, email, phone, address);
                 Alert.alert("Sucesso", "Cliente atualizado com sucesso!");
             } else {
-                await createClient(name, email, phone, address);
+                await createClient(usuarioId, name, email, phone, address);
                 Alert.alert("Sucesso", "Cliente cadastrado com sucesso!");
             }
             router.push("/screens/clientes");
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
         gap: 10,
         padding: 5,
         paddingTop: 10,
-        marginRight: "45%",
+        marginRight: "55%",
         alignItems: "center",
         flexDirection: "row",
     },
