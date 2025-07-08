@@ -141,12 +141,12 @@ const AddClientPage: React.FC = () => {
                             keyboardType="phone-pad"
                         />
 
-                        <Text style={styles.label}>Endereço:</Text>
+                        <Text style={styles.label}>Observações:</Text>
                         <TextInput
                             style={[styles.input, { height: 100, textAlignVertical: "top" }]}
                             value={address}
                             onChangeText={setAddress}
-                            placeholder="Endereço completo (opcional)"
+                            placeholder="Observações (opcional)"
                             placeholderTextColor="#ccc"
                             multiline
                         />

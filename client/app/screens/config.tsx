@@ -1,3 +1,4 @@
+// config.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -9,16 +10,22 @@ import {
   ScrollView,
   Platform,
   Image,
+  Switch,
+  Alert,
 } from "react-native";
 import {
   MaterialCommunityIcons,
   Feather,
+  FontAwesome5,
 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import { useFonts, BebasNeue_400Regular} from "@expo-google-fonts/bebas-neue";
+import {Montserrat_400Regular } from "@expo-google-fonts/montserrat";
 import * as SplashScreen from "expo-splash-screen";
 import * as ImagePicker from "expo-image-picker";
 import { Nav } from "../components/utils";
+import { getConfigsByUserId, updateConfigs, getUserProfile, updateUserProfile } from "../services/api"; // Importar todas as funções necessárias
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SettingsPage = () => {
   const [cnpj, setCnpj] = useState("");
@@ -26,7 +33,9 @@ const SettingsPage = () => {
   const [senha, setSenha] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [image, setImage] = useState<string | null>(null);
-  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
+  const [notificacoesEstoque, setNotificacoesEstoque] = useState(true); // Default value
+  const [integracaoGoogleCalendar, setIntegracaoGoogleCalendar] = useState(false); // Default value
+  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
   useEffect(() => {
     async function prepare() {
@@ -41,11 +50,63 @@ const SettingsPage = () => {
     }
   }, [fontsLoaded]);
 
+  // Carregar configurações e perfil do usuário ao montar o componente
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const usuarioIdString = await AsyncStorage.getItem('usuario_id');
+        if (!usuarioIdString) {
+          Alert.alert("Erro", "ID do usuário não encontrado. Por favor, faça login novamente.");
+          return;
+        }
+        const usuario_id = parseInt(usuarioIdString, 10);
+
+        // 1. Carregar configurações
+        try {
+          const configs = await getConfigsByUserId(usuario_id);
+          if (configs) {
+            setNotificacoesEstoque(configs.notificacoes_estoque);
+            setIntegracaoGoogleCalendar(configs.integracao_google_calendar);
+          }
+        } catch (configError: any) {
+          // Se as configurações não forem encontradas (404), usamos os valores padrão do estado
+          // Outros erros são logados.
+          if (configError.message !== 'Configurações não encontradas para este usuário.') {
+            console.error("Erro ao carregar configurações:", configError);
+            Alert.alert("Erro", "Não foi possível carregar suas configurações.");
+          }
+          // Se for 404, os estados já estão com os valores padrão (true/false)
+        }
+
+        // 2. Carregar perfil do usuário
+        try {
+          const userProfile = await getUserProfile(usuario_id);
+          if (userProfile) {
+            setCnpj(formatCNPJ(userProfile.cnpj || ""));
+            setEmail(userProfile.email || "");
+            if (userProfile.foto_perfil) {
+              // Assumindo que foto_perfil do backend é uma URI ou base64
+              setImage(`data:image/jpeg;base64,${userProfile.foto_perfil}`);
+            }
+          }
+        } catch (profileError) {
+          console.error("Erro ao carregar perfil do usuário:", profileError);
+          Alert.alert("Erro", "Não foi possível carregar seus dados de perfil.");
+        }
+
+      } catch (mainError) {
+        console.error("Erro geral no carregamento de dados do usuário:", mainError);
+      }
+    };
+    loadUserData();
+  }, []);
+
   if (!fontsLoaded) {
     return null;
   }
 
   const formatCNPJ = (value: string) => {
+    // ... (função formatCNPJ inalterada) ...
     const cleanedValue = value.replace(/[^a-zA-Z0-9]/g, "");
     const isAlphanumeric = /[a-zA-Z]/.test(cleanedValue);
 
@@ -93,6 +154,7 @@ const SettingsPage = () => {
   };
 
   const pickImage = async () => {
+    // ... (função pickImage inalterada) ...
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {
@@ -100,7 +162,6 @@ const SettingsPage = () => {
       return;
     }
 
-    // Abrir o seletor de imagens
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: true,
@@ -110,6 +171,60 @@ const SettingsPage = () => {
 
     if (!result.canceled) {
       setImage(result.assets[0].uri);
+    }
+  };
+
+  const handleUpdateAccount = async () => {
+    try {
+      const usuarioIdString = await AsyncStorage.getItem('usuario_id');
+      if (!usuarioIdString) {
+        Alert.alert("Erro", "ID do usuário não encontrado. Por favor, faça login novamente.");
+        return;
+      }
+      const usuario_id = parseInt(usuarioIdString, 10);
+
+      let updateSuccess = true;
+      let errorMessage = "Erro ao atualizar: ";
+
+      // 1. Atualizar dados do perfil do usuário (CNPJ, Email, Senha)
+      const userDataToUpdate: { email?: string; cnpj?: string; senha?: string } = {};
+      if (email) userDataToUpdate.email = email;
+      // Remova a formatação do CNPJ antes de enviar para o backend
+      // O replace(/[^0-9]/g, '') remove TUDO que não for número,
+      // Se seu CNPJ pode ter letras, ajuste para /[^0-9A-Za-z]/g
+      const rawCnpj = cnpj.replace(/[^0-9]/g, '');
+      if (rawCnpj) userDataToUpdate.cnpj = rawCnpj; // Envie o CNPJ sem formatação
+      if (senha) userDataToUpdate.senha = senha; // Enviar a senha apenas se preenchida
+
+      if (Object.keys(userDataToUpdate).length > 0) {
+        try {
+          await updateUserProfile(usuario_id, userDataToUpdate);
+        } catch (error: any) {
+          updateSuccess = false;
+          errorMessage += `Perfil (${error.message || 'Erro desconhecido'}). `;
+          console.error("Erro ao atualizar perfil do usuário:", error);
+        }
+      }
+
+      // 2. Atualizar configurações (notificações de estoque, integração Google Calendar)
+      try {
+        await updateConfigs(usuario_id, notificacoesEstoque, integracaoGoogleCalendar);
+      } catch (error: any) {
+        updateSuccess = false;
+        errorMessage += `Configurações (${error.message || 'Erro desconhecido'}).`;
+        console.error("Erro ao atualizar configurações:", error);
+      }
+
+      if (updateSuccess) {
+        Alert.alert("Sucesso", "Dados e configurações atualizados com sucesso!");
+        setSenha(''); // Limpar campo de senha após atualização
+      } else {
+        Alert.alert("Erro", errorMessage);
+      }
+
+    } catch (mainError) {
+      console.error("Erro geral na função handleUpdateAccount:", mainError);
+      Alert.alert("Erro", "Ocorreu um erro inesperado ao tentar atualizar.");
     }
   };
 
@@ -132,11 +247,15 @@ const SettingsPage = () => {
 
           <View style={styles.photoContainer}>
             <View style={styles.photoCircle}>
-              {image ? (
-                <Image source={{ uri: image }} style={styles.profileImage} />
-              ) : (
-                <Text style={styles.photoText}>FOTO</Text>
-              )}
+              <TouchableOpacity
+                onPress={pickImage}
+              >
+                {image ? (
+                  <Image source={{ uri: image }} style={styles.profileImage} />
+                ) : (
+                  <FontAwesome5 name="user" size={60} color="#F5F5F5" />
+                )}
+              </TouchableOpacity>
             </View>
             <TouchableOpacity
               style={styles.editPhotoButton}
@@ -170,6 +289,8 @@ const SettingsPage = () => {
                   onChangeText={setEmail}
                   placeholder="Digite seu email"
                   placeholderTextColor="#ccc"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                 />
               </View>
             </View>
@@ -182,7 +303,7 @@ const SettingsPage = () => {
                   value={senha}
                   onChangeText={setSenha}
                   secureTextEntry={!passwordVisible}
-                  placeholder="Digite sua senha"
+                  placeholder="Deixe em branco para não alterar"
                   placeholderTextColor="#ccc"
                 />
                 <TouchableOpacity
@@ -198,12 +319,34 @@ const SettingsPage = () => {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.updateButton}>
+            <View style={styles.configOption}>
+              <Text style={styles.label}>Notificações de Estoque:</Text>
+              <Switch
+                trackColor={{ false: "#767577", true: "#5D9B9B" }}
+                thumbColor={notificacoesEstoque ? "#F5F5F5" : "#f4f3f4"}
+                ios_backgroundColor="#3e3e3e"
+                onValueChange={setNotificacoesEstoque}
+                value={notificacoesEstoque}
+              />
+            </View>
+
+            <View style={styles.configOption}>
+              <Text style={styles.label}>Integração Google Calendar:</Text>
+              <Switch
+                trackColor={{ false: "#767577", true: "#5D9B9B" }}
+                thumbColor={integracaoGoogleCalendar ? "#F5F5F5" : "#f4f3f4"}
+                ios_backgroundColor="#3e3e3e"
+                onValueChange={setIntegracaoGoogleCalendar}
+                value={integracaoGoogleCalendar}
+              />
+            </View>
+
+            <TouchableOpacity style={styles.updateButton} onPress={handleUpdateAccount}>
               <Text style={styles.updateButtonText}>ATUALIZAR CONTA</Text>
             </TouchableOpacity>
           </View>
 
-          <Nav/>
+          <Nav />
         </LinearGradient>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -327,6 +470,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     shadowOffset: { width: 8, height: 5 },
+  },
+  configOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    backgroundColor: "rgba(42, 77, 105, 0.35)",
+    borderRadius: 5,
   },
 });
 

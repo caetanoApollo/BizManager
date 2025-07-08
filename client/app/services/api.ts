@@ -127,3 +127,76 @@ export async function deleteClient(id: number, usuario_id: number) {
     if (!response.ok) throw new Error(data.error);
     return data;
 }
+
+export async function getUserProfile(usuario_id: number) {
+    const authHeader = await getAuthHeader();
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+    if (authHeader.Authorization) {
+        headers["Authorization"] = authHeader.Authorization;
+    }
+    const response = await fetch(`${BASE_URL}/api/users/${usuario_id}`, {
+        headers
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+}
+
+export async function updateUserProfile(
+    usuario_id: number,
+    userData: { nome?: string; email?: string; telefone?: string; cnpj?: string; senha?: string } // Removido fotoPerfilUri para simplicidade, se precisar, trate separadamente com FormData.
+) {
+    const authHeader = await getAuthHeader();
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+    if (authHeader && typeof authHeader.Authorization === "string") {
+        headers["Authorization"] = authHeader.Authorization;
+    }
+    const response = await fetch(`${BASE_URL}/api/users/${usuario_id}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(userData),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+}
+
+// função para obter configurações do usuário
+export async function getConfigsByUserId(usuario_id: number) {
+    const authHeader = await getAuthHeader();
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+    if (authHeader.Authorization) {
+        headers["Authorization"] = authHeader.Authorization;
+    }
+    const response = await fetch(`${BASE_URL}/api/configs/${usuario_id}`, {
+        headers
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+}
+
+// função para atualizar/criar configurações do usuário
+export async function updateConfigs(usuario_id: number, notificacoes_estoque: boolean, integracao_google_calendar: boolean) {
+    const authHeader = await getAuthHeader();
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+    if (authHeader && typeof authHeader.Authorization === "string") {
+        headers["Authorization"] = authHeader.Authorization;
+    }
+    const response = await fetch(`${BASE_URL}/api/configs/${usuario_id}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ notificacoes_estoque, integracao_google_calendar }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+}

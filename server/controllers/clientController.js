@@ -1,7 +1,7 @@
 const db = require('../config/db');    
 
 exports.createClient = async (req, res) => {
-    const { usuario_id, nome, email, telefone, endereco } = req.body;
+    const { usuario_id, nome, email, telefone, observacoes } = req.body;
 
     if (!usuario_id || !nome || !telefone) {
         return res.status(400).json({ error: 'Nome de usuário e telefone são obrigatórios para o cliente.' });
@@ -9,11 +9,11 @@ exports.createClient = async (req, res) => {
 
     try {
         const [result] = await db.query(
-            'INSERT INTO clientes (usuario_id, nome, email, telefone, endereco) VALUES (?, ?, ?, ?, ?)',
-            [usuario_id, nome, email || null, telefone, endereco || null]
+            'INSERT INTO clientes (usuario_id, nome, email, telefone, observacoes) VALUES (?, ?, ?, ?, ?)',
+            [usuario_id, nome, email || null, telefone, observacoes || null]
         );
         console.log(`Novo cliente cadastrado: ID ${result.insertId}, Nome ${nome}`);
-        res.status(201).json({ id: result.insertId, usuario_id, nome, email, telefone, endereco });
+        res.status(201).json({ id: result.insertId, usuario_id, nome, email, telefone, observacoes });
     } catch (err) {
         console.error('Erro ao cadastrar cliente:', err);
         res.status(500).json({ error: 'Erro ao cadastrar cliente.' });
@@ -35,7 +35,7 @@ exports.getClientsByUserId = async (req, res) => {
 
 exports.updateClient = async (req, res) => {
     const { id } = req.params; 
-    const { nome, email, telefone, endereco, usuario_id } = req.body; 
+    const { nome, email, telefone, observacoes, usuario_id } = req.body; 
 
     if (!nome || !telefone || !usuario_id) {
         return res.status(400).json({ error: 'Nome, telefone e ID do usuário são obrigatórios para atualização do cliente.' });
@@ -48,8 +48,8 @@ exports.updateClient = async (req, res) => {
         }
 
         const [result] = await db.query(
-            'UPDATE clientes SET nome = ?, email = ?, telefone = ?, endereco = ? WHERE id = ?',
-            [nome, email || null, telefone, endereco || null, id]
+            'UPDATE clientes SET nome = ?, email = ?, telefone = ?, observacoes = ? WHERE id = ?',
+            [nome, email || null, telefone, observacoes || null, id]
         );
 
         if (result.affectedRows === 0) {

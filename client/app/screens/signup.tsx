@@ -11,7 +11,7 @@ import {
   Platform,
   Image,
 } from "react-native";
-import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Feather, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import * as ImagePicker from "expo-image-picker";
@@ -161,11 +161,15 @@ const CadastroPage: React.FC = () => {
           <View style={styles.inputContainer}>
             <View style={styles.photoContainer}>
               <View style={styles.photoCircle}>
-                {image ? (
-                  <Image source={{ uri: image }} style={styles.profileImage} />
-                ) : (
-                  <Text style={styles.photoText}>FOTO</Text>
-                )}
+                <TouchableOpacity
+                onPress={pickImage}
+                >
+                  {image ? (
+                    <Image source={{ uri: image }} style={styles.profileImage} />
+                  ) : (
+                    <FontAwesome5 name="user" size={60} color="#F5F5F5" />
+                  )}
+                </TouchableOpacity>
               </View>
               <TouchableOpacity
                 style={styles.editPhotoButton}
@@ -268,7 +272,7 @@ const CadastroPage: React.FC = () => {
           </View>
         </LinearGradient>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAvoidingView >
   );
 };
 

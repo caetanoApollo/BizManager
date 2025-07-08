@@ -68,9 +68,9 @@ const clientSchema = Joi.object({
         'string.max': 'Telefone do cliente deve ter no máximo {#limit} caracteres.',
         'any.required': 'Telefone do cliente é obrigatório.'
     }),
-    endereco: Joi.string().max(255).allow(null, '').messages({
-        'string.base': 'Endereço do cliente deve ser texto.',
-        'string.max': 'Endereço do cliente deve ter no máximo {#limit} caracteres.'
+    observacoes: Joi.string().max(255).allow(null, '').messages({
+        'string.base': 'Observações do cliente deve ser texto.',
+        'string.max': 'Observações do cliente deve ter no máximo {#limit} caracteres.'
     })
 });
 
