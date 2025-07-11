@@ -1,4 +1,4 @@
-// config.tsx
+// client/app/screens/config.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -19,8 +19,8 @@ import {
   FontAwesome5,
 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFonts, BebasNeue_400Regular} from "@expo-google-fonts/bebas-neue";
-import {Montserrat_400Regular } from "@expo-google-fonts/montserrat";
+import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
+import { Montserrat_400Regular } from "@expo-google-fonts/montserrat";
 import * as SplashScreen from "expo-splash-screen";
 import * as ImagePicker from "expo-image-picker";
 import { Nav } from "../components/utils";
@@ -30,7 +30,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const SettingsPage = () => {
   const [cnpj, setCnpj] = useState("");
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  const [senha, setSenha] = useState(""); // Senha deve SEMPRE iniciar vazia por segurança.
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   const [notificacoesEstoque, setNotificacoesEstoque] = useState(true); // Default value
@@ -63,7 +63,7 @@ const SettingsPage = () => {
 
         // 1. Carregar configurações
         try {
-          const configs = await getConfigsByUserId(usuario_id);
+          const configs = await getConfigsByUserId(usuario_id); //
           if (configs) {
             setNotificacoesEstoque(configs.notificacoes_estoque);
             setIntegracaoGoogleCalendar(configs.integracao_google_calendar);
@@ -71,7 +71,7 @@ const SettingsPage = () => {
         } catch (configError: any) {
           // Se as configurações não forem encontradas (404), usamos os valores padrão do estado
           // Outros erros são logados.
-          if (configError.message !== 'Configurações não encontradas para este usuário.') {
+          if (configError.message !== 'Configurações não encontradas para este usuário.') { //
             console.error("Erro ao carregar configurações:", configError);
             Alert.alert("Erro", "Não foi possível carregar suas configurações.");
           }
@@ -80,12 +80,18 @@ const SettingsPage = () => {
 
         // 2. Carregar perfil do usuário
         try {
-          const userProfile = await getUserProfile(usuario_id);
+          const userProfile = await getUserProfile(usuario_id); // Chama a função para obter o perfil do usuário
           if (userProfile) {
+            // Preenche o CNPJ e o email
             setCnpj(formatCNPJ(userProfile.cnpj || ""));
             setEmail(userProfile.email || "");
+
+            // Verifica e preenche a foto de perfil
             if (userProfile.foto_perfil) {
-              // Assumindo que foto_perfil do backend é uma URI ou base64
+              // Assumindo que userProfile.foto_perfil é um Buffer ou BLOB do banco de dados,
+              // que pode ser convertido para base64 no backend ou já vem como base64.
+              // Se for um caminho de URL, use diretamente: setImage(userProfile.foto_perfil);
+              // Se for base64:
               setImage(`data:image/jpeg;base64,${userProfile.foto_perfil}`);
             }
           }
@@ -105,48 +111,15 @@ const SettingsPage = () => {
     return null;
   }
 
-  const formatCNPJ = (value: string) => {
-    // ... (função formatCNPJ inalterada) ...
-    const cleanedValue = value.replace(/[^a-zA-Z0-9]/g, "");
-    const isAlphanumeric = /[a-zA-Z]/.test(cleanedValue);
-
-    if (isAlphanumeric) {
-      if (cleanedValue.length <= 8) {
-        return cleanedValue;
-      } else if (cleanedValue.length <= 12) {
-        return `${cleanedValue.slice(0, 8)}-${cleanedValue.slice(8)}`;
-      } else {
-        return `${cleanedValue.slice(0, 8)}-${cleanedValue.slice(
-          8,
-          12
-        )}-${cleanedValue.slice(12, 14)}`;
-      }
-    } else {
-      if (cleanedValue.length <= 2) {
-        return cleanedValue;
-      } else if (cleanedValue.length <= 5) {
-        return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(2)}`;
-      } else if (cleanedValue.length <= 8) {
-        return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(
-          2,
-          5
-        )}.${cleanedValue.slice(5)}`;
-      } else if (cleanedValue.length <= 12) {
-        return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(
-          2,
-          5
-        )}.${cleanedValue.slice(5, 8)}/${cleanedValue.slice(8)}`;
-      } else {
-        return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(
-          2,
-          5
-        )}.${cleanedValue.slice(5, 8)}/${cleanedValue.slice(
-          8,
-          12
-        )}-${cleanedValue.slice(12, 14)}`;
-      }
-    }
-  };
+  function formatCNPJ(value: string) {
+    const numbers = value.replace(/\D/g, "");
+    let cnpj = numbers;
+    if (cnpj.length > 2) cnpj = cnpj.replace(/^(\d{2})(\d)/, "$1.$2");
+    if (cnpj.length > 6) cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+    if (cnpj.length > 10) cnpj = cnpj.replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3/$4");
+    if (cnpj.length > 15) cnpj = cnpj.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5");
+    return cnpj;
+  }
 
   const handleCNPJChange = (value: string) => {
     const formattedCNPJ = formatCNPJ(value);
@@ -154,7 +127,6 @@ const SettingsPage = () => {
   };
 
   const pickImage = async () => {
-    // ... (função pickImage inalterada) ...
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {
@@ -189,15 +161,17 @@ const SettingsPage = () => {
       // 1. Atualizar dados do perfil do usuário (CNPJ, Email, Senha)
       const userDataToUpdate: { email?: string; cnpj?: string; senha?: string } = {};
       if (email) userDataToUpdate.email = email;
+
       // Remova a formatação do CNPJ antes de enviar para o backend
-      // O replace(/[^0-9]/g, '') remove TUDO que não for número,
-      // Se seu CNPJ pode ter letras, ajuste para /[^0-9A-Za-z]/g
       const rawCnpj = cnpj.replace(/[^0-9]/g, '');
       if (rawCnpj) userDataToUpdate.cnpj = rawCnpj; // Envie o CNPJ sem formatação
+
       if (senha) userDataToUpdate.senha = senha; // Enviar a senha apenas se preenchida
 
+      // Apenas chame updateUserProfile se houver dados para atualizar o perfil
       if (Object.keys(userDataToUpdate).length > 0) {
         try {
+          // O endpoint de edição de usuário no backend é `/editar/:id`
           await updateUserProfile(usuario_id, userDataToUpdate);
         } catch (error: any) {
           updateSuccess = false;
@@ -208,7 +182,7 @@ const SettingsPage = () => {
 
       // 2. Atualizar configurações (notificações de estoque, integração Google Calendar)
       try {
-        await updateConfigs(usuario_id, notificacoesEstoque, integracaoGoogleCalendar);
+        await updateConfigs(usuario_id, notificacoesEstoque, integracaoGoogleCalendar); //
       } catch (error: any) {
         updateSuccess = false;
         errorMessage += `Configurações (${error.message || 'Erro desconhecido'}).`;
@@ -305,9 +279,10 @@ const SettingsPage = () => {
                   secureTextEntry={!passwordVisible}
                   placeholder="Deixe em branco para não alterar"
                   placeholderTextColor="#ccc"
+                  maxLength={15}
                 />
                 <TouchableOpacity
-                  style={[styles.icon, { marginRight: 30 }]}
+                  style={[styles.icon, { marginRight: 30, left: 280 }]}
                   onPress={() => setPasswordVisible(!passwordVisible)}
                 >
                   <MaterialCommunityIcons
@@ -392,11 +367,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  photoText: {
-    fontSize: 25,
-    fontFamily: "BebasNeue",
-    color: "#F5F5F5",
-  },
   profileImage: {
     width: '100%',
     height: '100%',
@@ -421,7 +391,8 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 15,
   },
-  icon: { position: "absolute", left: 280, bottom: 10 },
+  // Ajuste o 'left' aqui para acomodar o maxLength menor da senha
+  icon: { position: "absolute", left: 245, bottom: 10 },
   label: {
     fontSize: 25,
     fontFamily: "BebasNeue",
@@ -438,7 +409,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     color: "#F5F5F5",
-    fontSize: 20,
+    fontSize: 15,
     fontFamily: "Montserrat",
   },
   updateButton: {

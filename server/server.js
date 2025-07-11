@@ -37,8 +37,8 @@ app.use('/api', invoiceRoutes);
 const scheduledServiceRoutes = require('./routers/scheduledServiceRouter');
 app.use('/api', scheduledServiceRoutes);
 
-const configRoutes = require('./routers/configRouter');
-app.use('/api', configRoutes);
+const configRouter = require('./routers/configRouter');
+app.use('/api', configRouter);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); 
 

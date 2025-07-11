@@ -110,3 +110,85 @@ exports.excluirUsuario = async (req, res) => {
         res.status(500).json({ error: 'Erro ao excluir usuário.' });
     }
 };
+
+exports.getUserProfile = async (req, res) => {
+    const { usuario_id } = req.params;
+    try {
+        const [rows] = await db.query('SELECT id, nome, email, telefone, cnpj, foto_perfil FROM usuarios WHERE id = ?', [usuario_id]); //
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Perfil do usuário não encontrado.' });
+        }
+        const userProfile = rows[0];
+        // Converte a foto_perfil de Buffer para string Base64, se existir
+        if (userProfile.foto_perfil) {
+            userProfile.foto_perfil = Buffer.from(userProfile.foto_perfil).toString('base64');
+        }
+        res.status(200).json(userProfile);
+    } catch (err) {
+        console.error('Erro ao buscar perfil do usuário:', err); //
+        res.status(500).json({ error: 'Erro ao buscar perfil do usuário.' });
+    }
+};
+
+exports.updateUserProfile = async (req, res) => {
+    const { usuario_id } = req.params;
+    const { nome, email, telefone, cnpj, senha } = req.body; //
+    // A foto de perfil pode vir via req.file se for Multipart/form-data,
+    // mas no seu frontend atual estamos enviando CNPJ, email e senha como JSON.
+    // Se a foto for atualizada separadamente, você precisará de outro endpoint ou ajustar aqui.
+
+    try {
+        let query = 'UPDATE usuarios SET ';
+        const params = [];
+        const fieldsToUpdate = [];
+
+        if (nome !== undefined) {
+            fieldsToUpdate.push('nome = ?');
+            params.push(nome);
+        }
+        if (email !== undefined) {
+            fieldsToUpdate.push('email = ?');
+            params.push(email);
+        }
+        if (telefone !== undefined) {
+            fieldsToUpdate.push('telefone = ?');
+            params.push(telefone);
+        }
+        if (cnpj !== undefined) {
+            // Remova a formatação do CNPJ se o banco de dados espera apenas números
+            const rawCnpj = cnpj.replace(/[^0-9]/g, '');
+            fieldsToUpdate.push('cnpj = ?');
+            params.push(rawCnpj);
+        }
+        if (senha !== undefined && senha !== '') {
+            const hashedPassword = await bcrypt.hash(senha, 10); // Hash da nova senha
+            fieldsToUpdate.push('senha = ?');
+            params.push(hashedPassword);
+        }
+
+        // Se você permitir atualização da foto de perfil aqui via JSON (base64) ou FormData
+        // if (foto_perfil_base64 !== undefined) { 
+        //     fieldsToUpdate.push('foto_perfil = ?');
+        //     params.push(Buffer.from(foto_perfil_base64, 'base64')); // Converte de volta para Buffer
+        // }
+
+
+        if (fieldsToUpdate.length === 0) {
+            return res.status(400).json({ error: 'Nenhum dado para atualizar fornecido.' });
+        }
+
+        query += fieldsToUpdate.join(', ') + ' WHERE id = ?';
+        params.push(usuario_id);
+
+        const [result] = await db.query(query, params); //
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado ou nenhum dado alterado.' });
+        }
+
+        res.status(200).json({ message: 'Dados do usuário atualizados com sucesso!' });
+    } catch (err) {
+        console.error('Erro ao atualizar dados do usuário:', err); //
+        res.status(500).json({ error: 'Erro ao atualizar dados do usuário.' });
+    }
+};
