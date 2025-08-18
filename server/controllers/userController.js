@@ -112,30 +112,28 @@ exports.excluirUsuario = async (req, res) => {
 };
 
 exports.getUserProfile = async (req, res) => {
-    const { usuario_id } = req.params;
+    const userId = req.params.id;
     try {
-        const [rows] = await db.query('SELECT id, nome, email, telefone, cnpj, foto_perfil FROM usuarios WHERE id = ?', [usuario_id]); //
+        const [rows] = await db.query('SELECT * FROM usuarios WHERE id = ?', [userId]);
         if (rows.length === 0) {
-            return res.status(404).json({ error: 'Perfil do usuário não encontrado.' });
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
         }
-        const userProfile = rows[0];
-        // Converte a foto_perfil de Buffer para string Base64, se existir
-        if (userProfile.foto_perfil) {
-            userProfile.foto_perfil = Buffer.from(userProfile.foto_perfil).toString('base64');
+        const user = rows[0];
+
+        if (user.foto_perfil) {
+            user.profile_picture_base64 = Buffer.from(user.foto_perfil).toString('base64');
         }
-        res.status(200).json(userProfile);
+
+        res.status(200).json(user);
     } catch (err) {
-        console.error('Erro ao buscar perfil do usuário:', err); //
-        res.status(500).json({ error: 'Erro ao buscar perfil do usuário.' });
+        console.error('Erro ao buscar perfil:', err);
+        res.status(500).json({ error: 'Erro ao buscar perfil.' });
     }
 };
 
 exports.updateUserProfile = async (req, res) => {
-    const { usuario_id } = req.params;
+    const { id } = req.params;
     const { nome, email, telefone, cnpj, senha } = req.body; //
-    // A foto de perfil pode vir via req.file se for Multipart/form-data,
-    // mas no seu frontend atual estamos enviando CNPJ, email e senha como JSON.
-    // Se a foto for atualizada separadamente, você precisará de outro endpoint ou ajustar aqui.
 
     try {
         let query = 'UPDATE usuarios SET ';
@@ -155,7 +153,6 @@ exports.updateUserProfile = async (req, res) => {
             params.push(telefone);
         }
         if (cnpj !== undefined) {
-            // Remova a formatação do CNPJ se o banco de dados espera apenas números
             const rawCnpj = cnpj.replace(/[^0-9]/g, '');
             fieldsToUpdate.push('cnpj = ?');
             params.push(rawCnpj);
@@ -166,19 +163,16 @@ exports.updateUserProfile = async (req, res) => {
             params.push(hashedPassword);
         }
 
-        // Se você permitir atualização da foto de perfil aqui via JSON (base64) ou FormData
-        // if (foto_perfil_base64 !== undefined) { 
-        //     fieldsToUpdate.push('foto_perfil = ?');
-        //     params.push(Buffer.from(foto_perfil_base64, 'base64')); // Converte de volta para Buffer
-        // }
-
+        if (user.foto_perfil) {
+            user.profile_picture_base64 = Buffer.from(user.foto_perfil).toString('base64');
+        }
 
         if (fieldsToUpdate.length === 0) {
             return res.status(400).json({ error: 'Nenhum dado para atualizar fornecido.' });
         }
 
         query += fieldsToUpdate.join(', ') + ' WHERE id = ?';
-        params.push(usuario_id);
+        params.push(id);
 
         const [result] = await db.query(query, params); //
 

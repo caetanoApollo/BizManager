@@ -1,4 +1,3 @@
-// client/app/screens/config.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -24,84 +23,69 @@ import { Montserrat_400Regular } from "@expo-google-fonts/montserrat";
 import * as SplashScreen from "expo-splash-screen";
 import * as ImagePicker from "expo-image-picker";
 import { Nav } from "../components/utils";
-import { getConfigsByUserId, updateConfigs, getUserProfile, updateUserProfile } from "../services/api"; // Importar todas as funções necessárias
+// ATUALIZADO: Importando as funções corretas da API
+import {
+  getConfigsByUserId,
+  updateConfigs,
+  getUserProfile,
+  updateUserData,       // Para atualizar dados de texto
+  uploadProfilePicture, // Para enviar a imagem
+} from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Defina a URL base do seu servidor aqui
+const SERVER_BASE_URL = "http://SEU_IP_AQUI:5000";
+
 const SettingsPage = () => {
+  const [nome, setNome] = useState(""); // Adicionado estado para o nome
   const [cnpj, setCnpj] = useState("");
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState(""); // Senha deve SEMPRE iniciar vazia por segurança.
+  const [senha, setSenha] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [image, setImage] = useState<string | null>(null);
-  const [notificacoesEstoque, setNotificacoesEstoque] = useState(true); // Default value
-  const [integracaoGoogleCalendar, setIntegracaoGoogleCalendar] = useState(false); // Default value
+
+  // Estados separados para a imagem
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // URL da imagem atual no servidor
+  const [newImageUri, setNewImageUri] = useState<string | null>(null); // URI da nova imagem selecionada
+
+  const [notificacoesEstoque, setNotificacoesEstoque] = useState(true);
+  const [integracaoGoogleCalendar, setIntegracaoGoogleCalendar] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
   useEffect(() => {
-    async function prepare() {
-      await SplashScreen.preventAutoHideAsync();
-    }
-    prepare();
-  }, []);
-
-  useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
+    // ... (seu useEffect para fontes e splash screen) ...
   }, [fontsLoaded]);
 
-  // Carregar configurações e perfil do usuário ao montar o componente
   useEffect(() => {
     const loadUserData = async () => {
       try {
         const usuarioIdString = await AsyncStorage.getItem('usuario_id');
         if (!usuarioIdString) {
-          Alert.alert("Erro", "ID do usuário não encontrado. Por favor, faça login novamente.");
+          Alert.alert("Erro", "ID do usuário não encontrado. Faça login novamente.");
           return;
         }
-        const usuario_id = parseInt(usuarioIdString, 10);
+        const id = parseInt(usuarioIdString, 10);
+        setUserId(id);
 
-        // 1. Carregar configurações
-        try {
-          const configs = await getConfigsByUserId(usuario_id); //
-          if (configs) {
-            setNotificacoesEstoque(configs.notificacoes_estoque);
-            setIntegracaoGoogleCalendar(configs.integracao_google_calendar);
-          }
-        } catch (configError: any) {
-          // Se as configurações não forem encontradas (404), usamos os valores padrão do estado
-          // Outros erros são logados.
-          if (configError.message !== 'Configurações não encontradas para este usuário.') { //
-            console.error("Erro ao carregar configurações:", configError);
-            Alert.alert("Erro", "Não foi possível carregar suas configurações.");
-          }
-          // Se for 404, os estados já estão com os valores padrão (true/false)
+        // Carregar perfil do usuário
+        const userProfile = await getUserProfile(id);
+        if (userProfile) {
+          setNome(userProfile.nome || "");
+          setCnpj(formatCNPJ(userProfile.cnpj || ""));
+          setEmail(userProfile.email || "");
+          setCurrentImageUrl(userProfile.profile_picture_url); // Armazena a URL da foto
         }
 
-        // 2. Carregar perfil do usuário
-        try {
-          const userProfile = await getUserProfile(usuario_id); // Chama a função para obter o perfil do usuário
-          if (userProfile) {
-            // Preenche o CNPJ e o email
-            setCnpj(formatCNPJ(userProfile.cnpj || ""));
-            setEmail(userProfile.email || "");
-
-            // Verifica e preenche a foto de perfil
-            if (userProfile.foto_perfil) {
-              // Assumindo que userProfile.foto_perfil é um Buffer ou BLOB do banco de dados,
-              // que pode ser convertido para base64 no backend ou já vem como base64.
-              // Se for um caminho de URL, use diretamente: setImage(userProfile.foto_perfil);
-              // Se for base64:
-              setImage(`data:image/jpeg;base64,${userProfile.foto_perfil}`);
-            }
-          }
-        } catch (profileError) {
-          console.error("Erro ao carregar perfil do usuário:", profileError);
-          Alert.alert("Erro", "Não foi possível carregar seus dados de perfil.");
+        // Carregar configurações
+        const configs = await getConfigsByUserId(id);
+        if (configs) {
+          setNotificacoesEstoque(configs.notificacoes_estoque);
+          setIntegracaoGoogleCalendar(configs.integracao_google_calendar);
         }
-
-      } catch (mainError) {
-        console.error("Erro geral no carregamento de dados do usuário:", mainError);
+      } catch (error) {
+        console.error("Erro ao carregar dados do usuário:", error);
       }
     };
     loadUserData();
@@ -111,6 +95,69 @@ const SettingsPage = () => {
     return null;
   }
 
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Desculpe, precisamos de permissão para acessar suas fotos!");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+    if (!result.canceled) {
+      setNewImageUri(result.assets[0].uri);
+    }
+  };
+
+  const handleUpdateAccount = async () => {
+    if (!userId) return;
+
+    setLoading(true);
+    try {
+      // ETAPA 1: Se uma nova imagem foi selecionada, faz o upload.
+      if (newImageUri) {
+        const uploadResponse = await uploadProfilePicture(newImageUri);
+        // Atualiza a URL da imagem no estado para refletir a mudança imediatamente
+        setCurrentImageUrl(uploadResponse.imageUrl);
+        setNewImageUri(null); // Limpa a imagem selecionada
+      }
+
+      // ETAPA 2: Atualiza os dados de texto do perfil.
+      const userDataToUpdate: { nome: string; email: string; cnpj: string; senha?: string } = {
+        nome, // Adicionado nome
+        email,
+        cnpj: cnpj.replace(/[^0-9]/g, ''),
+      };
+      if (senha) {
+        userDataToUpdate.senha = senha;
+      }
+      await updateUserData(userId, userDataToUpdate);
+
+      // ETAPA 3: Atualiza as configurações.
+      await updateConfigs(userId, notificacoesEstoque, integracaoGoogleCalendar);
+
+      Alert.alert("Sucesso", "Seu perfil foi atualizado!");
+      setSenha(''); // Limpa o campo de senha
+    } catch (error) {
+      console.error("Erro ao atualizar conta:", error);
+      Alert.alert("Erro", "Não foi possível atualizar seus dados. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Lógica para decidir qual imagem exibir
+  let imageSource = require("../../assets/images/icon_app.png"); // Imagem padrão
+  if (newImageUri) {
+    imageSource = { uri: newImageUri }; // Prioriza a nova imagem
+  } else if (currentImageUrl) {
+    imageSource = { uri: `${SERVER_BASE_URL}${currentImageUrl}` }; // Usa a imagem do servidor
+  }
+
+  // ... (funções formatCNPJ, etc.) ...
   function formatCNPJ(value: string) {
     const numbers = value.replace(/\D/g, "");
     let cnpj = numbers;
@@ -120,121 +167,31 @@ const SettingsPage = () => {
     if (cnpj.length > 15) cnpj = cnpj.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5");
     return cnpj;
   }
-
   const handleCNPJChange = (value: string) => {
     const formattedCNPJ = formatCNPJ(value);
     setCnpj(formattedCNPJ);
   };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (status !== "granted") {
-      alert("Desculpe, precisamos de permissão para acessar suas fotos!");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images',
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
-    }
-  };
-
-  const handleUpdateAccount = async () => {
-    try {
-      const usuarioIdString = await AsyncStorage.getItem('usuario_id');
-      if (!usuarioIdString) {
-        Alert.alert("Erro", "ID do usuário não encontrado. Por favor, faça login novamente.");
-        return;
-      }
-      const usuario_id = parseInt(usuarioIdString, 10);
-
-      let updateSuccess = true;
-      let errorMessage = "Erro ao atualizar: ";
-
-      // 1. Atualizar dados do perfil do usuário (CNPJ, Email, Senha)
-      const userDataToUpdate: { email?: string; cnpj?: string; senha?: string } = {};
-      if (email) userDataToUpdate.email = email;
-
-      // Remova a formatação do CNPJ antes de enviar para o backend
-      const rawCnpj = cnpj.replace(/[^0-9]/g, '');
-      if (rawCnpj) userDataToUpdate.cnpj = rawCnpj; // Envie o CNPJ sem formatação
-
-      if (senha) userDataToUpdate.senha = senha; // Enviar a senha apenas se preenchida
-
-      // Apenas chame updateUserProfile se houver dados para atualizar o perfil
-      if (Object.keys(userDataToUpdate).length > 0) {
-        try {
-          // O endpoint de edição de usuário no backend é `/editar/:id`
-          await updateUserProfile(usuario_id, userDataToUpdate);
-        } catch (error: any) {
-          updateSuccess = false;
-          errorMessage += `Perfil (${error.message || 'Erro desconhecido'}). `;
-          console.error("Erro ao atualizar perfil do usuário:", error);
-        }
-      }
-
-      // 2. Atualizar configurações (notificações de estoque, integração Google Calendar)
-      try {
-        await updateConfigs(usuario_id, notificacoesEstoque, integracaoGoogleCalendar); //
-      } catch (error: any) {
-        updateSuccess = false;
-        errorMessage += `Configurações (${error.message || 'Erro desconhecido'}).`;
-        console.error("Erro ao atualizar configurações:", error);
-      }
-
-      if (updateSuccess) {
-        Alert.alert("Sucesso", "Dados e configurações atualizados com sucesso!");
-        setSenha(''); // Limpar campo de senha após atualização
-      } else {
-        Alert.alert("Erro", errorMessage);
-      }
-
-    } catch (mainError) {
-      console.error("Erro geral na função handleUpdateAccount:", mainError);
-      Alert.alert("Erro", "Ocorreu um erro inesperado ao tentar atualizar.");
-    }
-  };
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: "#2A4D69" }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <LinearGradient
-          colors={["#5D9B9B", "#2A4D69"]}
-          style={styles.container}
-        >
+        <LinearGradient colors={["#5D9B9B", "#2A4D69"]} style={styles.container}>
+
           <View style={styles.header}>
             <Text style={styles.title}>BIZMANAGER</Text>
           </View>
 
           <Text style={styles.subtitle}>CONFIGURAÇÕES</Text>
-
+          
           <View style={styles.photoContainer}>
-            <View style={styles.photoCircle}>
-              <TouchableOpacity
-                onPress={pickImage}
-              >
-                {image ? (
-                  <Image source={{ uri: image }} style={styles.profileImage} />
-                ) : (
-                  <FontAwesome5 name="user" size={60} color="#F5F5F5" />
-                )}
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity
-              style={styles.editPhotoButton}
-              onPress={pickImage}
-            >
+            <TouchableOpacity onPress={pickImage} style={styles.photoCircle}>
+              <Image source={imageSource} style={styles.profileImage} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.editPhotoButton} onPress={pickImage}>
               <Feather name="edit-2" size={20} color="#F5F5F5" />
             </TouchableOpacity>
           </View>
