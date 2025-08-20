@@ -1,9 +1,9 @@
-export const BASE_URL = "http://172.20.91.39:3001"; // Seu IP
+export const BASE_URL = "http://192.168.2.201:3001"; //IP
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     const token = await AsyncStorage.getItem('userToken'); // Corrigido para 'userToken' se for o padrão
-    const headers: Record<string, string> = 
+    const headers: Record<string, string> =
         options.headers && typeof options.headers === 'object' && !Array.isArray(options.headers)
             ? { ...options.headers as Record<string, string> }
             : {};
@@ -28,13 +28,17 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     return data;
 };
 
-// --- Funções da API Refatoradas ---
-
-export const login = (identificador: string, senha: string) => {
-    return apiFetch('/api/login', {
+export const login = async (identificador: string, senha: string) => {
+    const resposta = await apiFetch('/api/login', {
         method: 'POST',
         body: JSON.stringify({ identificador, senha }),
     });
+
+    if (resposta.token) {
+        await AsyncStorage.setItem('userToken', resposta.token);
+    }
+
+    return resposta;
 };
 
 export const cadastro = async (nome: string, email: string, telefone: string, cnpj: string, senha: string, fotoPerfilUri?: string) => {
@@ -46,13 +50,13 @@ export const cadastro = async (nome: string, email: string, telefone: string, cn
     formData.append("senha", senha);
 
     if (fotoPerfilUri) {
-        formData.append("profilePicture", { 
+        formData.append("profilePicture", {
             uri: fotoPerfilUri,
             name: "foto.jpg",
             type: "image/jpeg",
         } as any);
     }
-    
+
     // Usamos o fetch diretamente aqui por causa do FormData
     const response = await fetch(`${BASE_URL}/api/cadastro`, {
         method: "POST",
@@ -77,7 +81,7 @@ export const getClients = (usuario_id: number) => {
 };
 
 export const updateClient = (clienteId: number, usuario_id: number, nome: string, email: string, telefone: string, endereco: string) => {
-    return apiFetch(`/api/clients/${usuario_id}`, { 
+    return apiFetch(`/api/clients/${usuario_id}`, {
         method: 'PUT',
         body: JSON.stringify({ clienteId, usuario_id, nome, email, telefone, endereco }),
     });
