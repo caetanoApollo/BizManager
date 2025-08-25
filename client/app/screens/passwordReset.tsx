@@ -59,8 +59,8 @@ const RecoveryPage: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({ email }),
       });
-      Alert.alert("Sucesso", "Um e-mail com o código de recuperação foi enviado.");
-      setStep(2); // Avança para a próxima etapa
+      Alert.alert("Sucesso", "Um e-mail com o código de recuperação foi enviado. Verifique o Sapam.");
+      setStep(2); 
     } catch (error: any) {
       Alert.alert("Erro", error.message || "Não foi possível enviar o e-mail de recuperação.");
     } finally {
@@ -92,7 +92,7 @@ const RecoveryPage: React.FC = () => {
         body: JSON.stringify({ email, token: codigo, newPassword: senha }),
       });
       Alert.alert("Sucesso", "Sua senha foi redefinida com sucesso!");
-      router.push("/screens/home"); // Redireciona para a tela inicial
+      router.push("/screens/home"); 
     } catch (error: any) {
       Alert.alert("Erro", error.message || "Não foi possível redefinir a senha.");
     } finally {
