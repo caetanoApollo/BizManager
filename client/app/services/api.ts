@@ -1,7 +1,7 @@
-export const BASE_URL = "http://192.168.2.201:3001"; //IP
+export const BASE_URL = "http://172.20.91.39:3001"; //IP
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
+export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     const token = await AsyncStorage.getItem('userToken'); // Corrigido para 'userToken' se for o padrão
     const headers: Record<string, string> =
         options.headers && typeof options.headers === 'object' && !Array.isArray(options.headers)
@@ -67,6 +67,12 @@ export const cadastro = async (nome: string, email: string, telefone: string, cn
     return data;
 };
 
+export const forgotPassword = async (email: string) => {
+    return await apiFetch('/api/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+    });
+};
 
 // --- Clientes ---
 export const createClient = (usuario_id: number, nome: string, email: string, telefone: string, endereco: string) => {

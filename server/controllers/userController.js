@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 exports.cadastrarUsuario = async (req, res) => {
     const { nome, email, senha, telefone, cnpj } = req.body;
@@ -184,5 +185,34 @@ exports.updateUserProfile = async (req, res) => {
     } catch (err) {
         console.error('Erro ao atualizar dados do usuário:', err); //
         res.status(500).json({ error: 'Erro ao atualizar dados do usuário.' });
+    }
+};
+
+exports.resetPassword = async (req, res) => {
+    const { email, token, newPassword } = req.body;
+    try {
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        const [users] = await db.query(
+            'SELECT * FROM usuarios WHERE email = ? AND passwordResetToken = ? AND passwordResetExpires > ?',
+            [email, hashedToken, new Date()]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({ error: 'Código de recuperação inválido ou expirado.' });
+        }
+
+        const user = users[0];
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await db.query(
+            'UPDATE usuarios SET senha = ?, passwordResetToken = NULL, passwordResetExpires = NULL WHERE id = ?',
+            [hashedPassword, user.id]
+        );
+
+        res.status(200).json({ message: 'Senha redefinida com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao redefinir senha:', err);
+        res.status(500).json({ error: 'Erro ao redefinir a senha.' });
     }
 };
