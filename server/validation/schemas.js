@@ -91,7 +91,7 @@ const transactionSchema = Joi.object({
     descricao: Joi.string().max(255).allow(null, ''),
     valor: Joi.number().precision(2).positive().required(),
     data: Joi.date().iso().required(),
-    tipo: Joi.string().valid('receita', 'despesa', 'transferencia').required(),
+    tipo: Joi.string().valid('Entrada', 'Saída').required(),
     categoria: Joi.string().max(50).allow(null, '')
 });
 

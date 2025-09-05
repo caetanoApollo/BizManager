@@ -9,6 +9,7 @@ import {
     ScrollView,
     Platform,
     Alert,
+    ActivityIndicator, // Adicionado para indicar carregamento
 } from "react-native";
 import { MaterialCommunityIcons, AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -18,7 +19,7 @@ import * as SplashScreen from "expo-splash-screen";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Header, Nav } from "../components/utils";
-import { createClient, updateClient } from "../services/api";
+import { createClient, updateClient, getClientById } from "../services/api"; // Importa getClientById
 
 const AddClientPage: React.FC = () => {
     const router = useRouter();
@@ -26,10 +27,11 @@ const AddClientPage: React.FC = () => {
     const clientId = params.clientId ? Number(params.clientId) : undefined;
     const isEditing = clientId !== undefined;
 
-    const [name, setName] = useState(isEditing ? (params.clientName as string || '') : "");
-    const [email, setEmail] = useState(isEditing ? (params.clientEmail as string || '') : "");
-    const [phone, setPhone] = useState(isEditing ? (params.clientPhone as string || '') : "");
-    const [address, setAddress] = useState(isEditing ? (params.clientAddress as string || '') : "");
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
+    const [observacao, setobservacao] = useState("");
+    const [loading, setLoading] = useState(true); // Novo estado de carregamento
     const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
     useEffect(() => {
@@ -45,8 +47,31 @@ const AddClientPage: React.FC = () => {
         }
     }, [fontsLoaded]);
 
-    if (!fontsLoaded) {
-        return null;
+    useEffect(() => {
+        const fetchClientData = async () => {
+            if (isEditing && clientId) {
+                try {
+                    const clientData = await getClientById(clientId);
+                    setName(clientData.nome);
+                    setEmail(clientData.email);
+                    setPhone(clientData.telefone);
+                    setobservacao(clientData.observacao);
+                } catch (error) {
+                    Alert.alert("Erro", "Não foi possível carregar os dados do cliente.");
+                    console.error("Erro ao carregar cliente:", error);
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                setLoading(false);
+            }
+        };
+
+        fetchClientData();
+    }, [clientId, isEditing]);
+
+    if (!fontsLoaded || loading) {
+        return <ActivityIndicator size="large" color="#fff" style={{ flex: 1, justifyContent: "center", backgroundColor: "#2A4D69" }} />;
     }
 
     const handleSaveClient = async () => {
@@ -56,12 +81,6 @@ const AddClientPage: React.FC = () => {
         }
 
         try {
-            const token = await AsyncStorage.getItem('token');
-            if (!token) {
-                Alert.alert("Erro", "Usuário não autenticado.");
-                return;
-            }
-
             const usuarioIdString = await AsyncStorage.getItem('usuario_id');
             const usuarioId = usuarioIdString ? Number(usuarioIdString) : undefined;
             if (!usuarioId) {
@@ -69,10 +88,10 @@ const AddClientPage: React.FC = () => {
                 return;
             }
             if (isEditing && clientId) {
-                await updateClient(usuarioId, clientId, name, email, phone, address);
+                await updateClient(clientId, usuarioId, name, email, phone, observacao);
                 Alert.alert("Sucesso", "Cliente atualizado com sucesso!");
             } else {
-                await createClient(usuarioId, name, email, phone, address);
+                await createClient(usuarioId, name, email, phone, observacao);
                 Alert.alert("Sucesso", "Cliente cadastrado com sucesso!");
             }
             router.push("/screens/clientes");
@@ -144,8 +163,8 @@ const AddClientPage: React.FC = () => {
                         <Text style={styles.label}>Observações:</Text>
                         <TextInput
                             style={[styles.input, { height: 100, textAlignVertical: "top" }]}
-                            value={address}
-                            onChangeText={setAddress}
+                            value={observacao}
+                            onChangeText={setobservacao}
                             placeholder="Observações (opcional)"
                             placeholderTextColor="#ccc"
                             multiline

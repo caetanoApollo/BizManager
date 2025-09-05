@@ -1,4 +1,4 @@
-// client/app/screens/home.tsx
+// client/app/screens/login.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -20,7 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 import { login } from "../services/api"; 
 
-export default function HomePage() {
+export default function loginPage() {
   const router = useRouter();
   const [identificador, setIdentificador] = useState("");
   const [senha, setSenha] = useState("");
@@ -28,13 +28,25 @@ export default function HomePage() {
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
 const handleLogin = async () => {
+    if (!identificador.trim() || !senha) {
+        Alert.alert("Erro", "Por favor, preencha todos os campos.");
+        return;
+    }
   try {
-    const user = await login(identificador, senha);
+    const cleanedIdentificador = identificador.includes('@')
+        ? identificador.trim()
+        : identificador.replace(/\D/g, '');
+
+    const user = await login(cleanedIdentificador, senha);
     if (user.token) {
       await AsyncStorage.setItem('token', user.token);
     }
     if (user.usuario_id) {
       await AsyncStorage.setItem('usuario_id', String(user.usuario_id));
+    }
+    // CORREÇÃO: Salva o nome do usuário no AsyncStorage para ser usado em outras telas
+    if (user.nome) {
+      await AsyncStorage.setItem('user_name', user.nome);
     }
     Alert.alert("Sucesso", `Bem-vindo, ${user.nome || "usuário"}!`);
     router.push("/screens/main");
@@ -71,12 +83,11 @@ function formatCNPJ(value: string) {
 }
 
 const handleIdentificadorChange = (value: string) => {
-  if (/[a-zA-Z@]/.test(value)) {
-    setIdentificador(value); 
-  } else {
-    const onlyNumbers = value.replace(/\D/g, "");
-    setIdentificador(formatCNPJ(onlyNumbers));
-  }
+    if (value.includes('@')) {
+        setIdentificador(value);
+    } else {
+        setIdentificador(formatCNPJ(value));
+    }
 };
 
   const handlePasswordVisibility = () => {
@@ -109,6 +120,7 @@ const handleIdentificadorChange = (value: string) => {
               value={identificador}
               onChangeText={handleIdentificadorChange}
               maxLength={50}
+              autoCapitalize="none"
             />
 
             <Text style={styles.label}>SENHA:</Text>
@@ -280,3 +292,4 @@ const styles = StyleSheet.create({
     color: "#F5F5F5",
   },
 });
+

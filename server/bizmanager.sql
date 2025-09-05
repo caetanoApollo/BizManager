@@ -1,4 +1,6 @@
--- drop database bizmanager; --
+-- drop database bizmanager;
+select * from usuarios;
+-- select * from clientes;
 
 create database bizmanager;
 use bizmanager;
@@ -11,7 +13,9 @@ create table usuarios (
     senha varchar(255) not null, -- senha criptografada
 	telefone varchar(20) not null,
     cnpj varchar(18) unique not null,
-    foto_perfil longblob,
+    passwordResetExpires DATETIME DEFAULT NULL,
+    passwordResetToken VARCHAR(255) DEFAULT NULL,
+    foto_perfil longblob null,
     data_criacao timestamp default current_timestamp
 );
 
@@ -22,7 +26,7 @@ CREATE TABLE IF NOT EXISTS clientes (
     nome VARCHAR(100) NOT NULL,
     email VARCHAR(100),
     telefone VARCHAR(20),
-    endereco TEXT,
+    observacoes TEXT,
     data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 );
@@ -50,7 +54,7 @@ CREATE TABLE IF NOT EXISTS transacoes_financeiras (
     descricao TEXT,
     valor DECIMAL(10,2) NOT NULL,
     data DATE NOT NULL,
-    tipo ENUM('receita', 'despesa', 'transferencia') NOT NULL,
+    tipo ENUM('Entrada', 'Saída') NOT NULL,
     categoria VARCHAR(50),
     data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE

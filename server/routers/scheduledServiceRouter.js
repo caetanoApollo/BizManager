@@ -2,12 +2,20 @@ const express = require('express');
 const router = express.Router();
 const scheduledServiceController = require('../controllers/scheduledServiceController');
 const authMiddleware = require('../middlewares/authMiddleware');
-const validate = require('../middlewares/validationMiddleware');
-const { scheduledServiceSchema } = require('../validation/schemas');
 
-router.post('/scheduled-services', authMiddleware, validate(scheduledServiceSchema, 'body'), scheduledServiceController.createScheduledService);
-router.get('/scheduled-services/:usuario_id', authMiddleware, scheduledServiceController.getScheduledServicesByUserId);
-router.put('/scheduled-services/:id', authMiddleware, validate(scheduledServiceSchema, 'body'), scheduledServiceController.updateScheduledService);
+// Rota para criar um novo serviço (evento)
+router.post('/scheduled-services', authMiddleware, scheduledServiceController.createScheduledService);
+
+// Rota para buscar todos os serviços (eventos) do usuário logado
+// A rota foi simplificada para /scheduled-services, pois o ID do usuário vem do token
+router.get('/scheduled-services', authMiddleware, scheduledServiceController.getScheduledServicesByUserId);
+
+// Rota para atualizar um serviço (evento) específico
+router.put('/scheduled-services/:id', authMiddleware, scheduledServiceController.updateScheduledService);
+
+// Rota para deletar um serviço (evento) específico
 router.delete('/scheduled-services/:id', authMiddleware, scheduledServiceController.deleteScheduledService);
+
+router.get('/:id', authMiddleware, scheduledServiceController.getScheduledServiceById);
 
 module.exports = router;

@@ -32,6 +32,20 @@ exports.getClientsByUserId = async (req, res) => {
     }
 };
 
+exports.getClientById = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [client] = await db.query('SELECT * FROM clientes WHERE id = ?', [id]);
+        if (client.length === 0) {
+            return res.status(404).json({ error: 'Cliente não encontrado.' });
+        }
+        res.status(200).json(client[0]);
+    } catch (err) {
+        console.error('Erro ao buscar cliente:', err);
+        res.status(500).json({ error: 'Erro ao buscar cliente.' });
+    }
+};
 
 exports.updateClient = async (req, res) => {
     const { id } = req.params; 

@@ -1,13 +1,33 @@
 const db = require('../config/db');
 
 exports.getConfigsByUserId = async (req, res) => {
-    const { usuario_id } = req.params;
+    const usuario_id = req.params.id;
+    
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'ID do usuário não informado.' });
+    }
+
     try {
-        const [rows] = await db.query('SELECT * FROM configuracoes WHERE usuario_id = ?', [usuario_id]);
+        let [rows] = await db.query('SELECT * FROM configuracoes WHERE usuario_id = ?', [usuario_id]);
+        
         if (rows.length === 0) {
-            return res.status(404).json({ error: 'Configurações não encontradas para este usuário.' });
+            await db.query(
+                'INSERT INTO configuracoes (usuario_id, notificacoes_estoque, integracao_google_calendar) VALUES (?, TRUE, FALSE)',
+                [usuario_id]
+            );
+            [rows] = await db.query('SELECT * FROM configuracoes WHERE usuario_id = ?', [usuario_id]);
         }
-        res.status(200).json(rows[0]);
+        
+        const userConfigs = rows[0];
+
+        const configsResponse = {
+            ...userConfigs,
+            notificacoes_estoque: !!userConfigs.notificacoes_estoque,
+            integracao_google_calendar: !!userConfigs.integracao_google_calendar,
+        };
+
+        return res.json(configsResponse);
+
     } catch (err) {
         console.error('Erro ao buscar configurações:', err);
         res.status(500).json({ error: 'Erro ao buscar configurações.' });
@@ -15,8 +35,16 @@ exports.getConfigsByUserId = async (req, res) => {
 };
 
 exports.updateConfigs = async (req, res) => {
-    const { usuario_id } = req.params; 
+    const usuario_id = req.params.id; 
     const { notificacoes_estoque, integracao_google_calendar } = req.body;
+
+    if (!usuario_id) {
+        return res.status(400).json({ error: 'ID do usuário não informado.' });
+    }
+
+    if (typeof notificacoes_estoque !== 'boolean' || typeof integracao_google_calendar !== 'boolean') {
+        return res.status(400).json({ error: 'Valores de configuração inválidos. Devem ser booleanos.' });
+    }
 
     try {
         const [existingConfigs] = await db.query('SELECT id FROM configuracoes WHERE usuario_id = ?', [usuario_id]);
@@ -34,7 +62,8 @@ exports.updateConfigs = async (req, res) => {
             );
             res.status(201).json({ message: 'Configurações criadas com sucesso!' });
         }
-    } catch (err) {
+    } catch (err)
+        {
         console.error('Erro ao atualizar configurações:', err);
         res.status(500).json({ error: 'Erro ao atualizar configurações.' });
     }

@@ -6,7 +6,7 @@ declare module 'expo-router' {
       StaticRoutes:
         | '/'
         | '/screens'
-        | '/screens/home'
+        | '/screens/login'
         | '/screens/signup'
         | '/screens/passwordReset'
         | '/screens/main'
@@ -21,7 +21,9 @@ declare module 'expo-router' {
         | '/screens/addEstoque'      
         | '/screens/graficos'      
         | '/screens/clientes' 
-        | '/screens/addCliente' 
+        | '/screens/addCliente'
+        | '/screens/transacoesDetalhes'
+        | '/screens/detalhesEventos' 
         | '/_sitemap'
         | '/signup';
       DynamicRoutes: never;
@@ -29,4 +31,3 @@ declare module 'expo-router' {
     }
   }
 }
-

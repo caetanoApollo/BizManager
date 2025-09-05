@@ -5,9 +5,13 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validationMiddleware');
 const { transactionSchema } = require('../validation/schemas');
 
-router.post('/financial', authMiddleware, validate(transactionSchema, 'body'), financialController.createTransaction);
-router.get('/financial/:usuario_id', authMiddleware, financialController.getTransactionsByUserId);
-router.put('/financial/:id', authMiddleware, validate(transactionSchema, 'body'), financialController.updateTransaction);
-router.delete('/financial/:id', authMiddleware, financialController.deleteTransaction);
+// Rota para buscar todas as transações de um usuário específico
+router.get('/transactions/user/:usuario_id', authMiddleware, financialController.getTransactionsByUserId);
+
+// Rotas para as outras funções financeiras
+router.post('/transactions', authMiddleware, validate(transactionSchema, 'body'), financialController.createTransaction);
+router.put('/transactions/:id', authMiddleware, validate(transactionSchema, 'body'), financialController.updateTransaction);
+router.delete('/transactions/:id', authMiddleware, financialController.deleteTransaction);
+router.get('/transactions/:id', authMiddleware, financialController.getTransactionById);
 
 module.exports = router;

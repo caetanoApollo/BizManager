@@ -11,7 +11,7 @@ const authMiddleware = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.usuario = decoded; 
+        req.user = decoded; 
         next();
     } catch (err) {
         console.error('Erro na verificação do token:', err);
@@ -23,3 +23,4 @@ const authMiddleware = (req, res, next) => {
 };
 
 module.exports = authMiddleware;
+

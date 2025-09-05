@@ -92,7 +92,7 @@ const RecoveryPage: React.FC = () => {
         body: JSON.stringify({ email, token: codigo, newPassword: senha }),
       });
       Alert.alert("Sucesso", "Sua senha foi redefinida com sucesso!");
-      router.push("/screens/home"); 
+      router.push("/screens/login"); 
     } catch (error: any) {
       Alert.alert("Erro", error.message || "Não foi possível redefinir a senha.");
     } finally {

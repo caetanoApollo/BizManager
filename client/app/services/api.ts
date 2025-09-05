@@ -1,6 +1,6 @@
 export const BASE_URL = "http://172.20.91.39:3001"; //IP
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+    
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     const token = await AsyncStorage.getItem('userToken'); // Corrigido para 'userToken' se for o padrão
     const headers: Record<string, string> =
@@ -42,29 +42,20 @@ export const login = async (identificador: string, senha: string) => {
 };
 
 export const cadastro = async (nome: string, email: string, telefone: string, cnpj: string, senha: string, fotoPerfilUri?: string) => {
-    const formData = new FormData();
-    formData.append("nome", nome);
-    formData.append("email", email);
-    formData.append("telefone", telefone);
-    formData.append("cnpj", cnpj);
-    formData.append("senha", senha);
-
-    if (fotoPerfilUri) {
-        formData.append("profilePicture", {
-            uri: fotoPerfilUri,
-            name: "foto.jpg",
-            type: "image/jpeg",
-        } as any);
-    }
-
-    // Usamos o fetch diretamente aqui por causa do FormData
-    const response = await fetch(`${BASE_URL}/api/cadastro`, {
-        method: "POST",
-        body: formData,
+    const body = {
+        nome,
+        email,
+        telefone,
+        cnpj,
+        senha,
+    };
+    
+    const response = await apiFetch('/api/cadastro', {
+        method: 'POST',
+        body: JSON.stringify(body),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error);
-    return data;
+
+    return response;
 };
 
 export const forgotPassword = async (email: string) => {
@@ -75,21 +66,26 @@ export const forgotPassword = async (email: string) => {
 };
 
 // --- Clientes ---
-export const createClient = (usuario_id: number, nome: string, email: string, telefone: string, endereco: string) => {
+export const createClient = (usuario_id: number, nome: string, email: string, telefone: string, observacao: string) => {
     return apiFetch('/api/clients', {
         method: 'POST',
-        body: JSON.stringify({ usuario_id, nome, email, telefone, endereco }),
+        body: JSON.stringify({ usuario_id, nome, email, telefone, observacoes: observacao }), 
     });
 };
 
 export const getClients = (usuario_id: number) => {
-    return apiFetch(`/api/clients/${usuario_id}`);
+    return apiFetch(`/api/clients/user/${usuario_id}`);
 };
 
-export const updateClient = (clienteId: number, usuario_id: number, nome: string, email: string, telefone: string, endereco: string) => {
-    return apiFetch(`/api/clients/${usuario_id}`, {
+
+export const getClientById = (clienteId: number) => {
+    return apiFetch(`/api/clients/${clienteId}`);
+};
+
+export const updateClient = (clienteId: number, usuario_id: number, nome: string, email: string, telefone: string, observacao: string) => {
+    return apiFetch(`/api/clients/${clienteId}`, {
         method: 'PUT',
-        body: JSON.stringify({ clienteId, usuario_id, nome, email, telefone, endereco }),
+        body: JSON.stringify({ usuario_id, nome, email, telefone, observacoes: observacao }),
     });
 };
 
@@ -106,21 +102,6 @@ export const getUserProfile = (usuario_id: number) => {
     return apiFetch(`/api/users/${usuario_id}`);
 };
 
-// 1. Função para upload da foto
-export const uploadProfilePicture = (fotoPerfilUri: string) => {
-    const formData = new FormData();
-    formData.append("profilePicture", {
-        uri: fotoPerfilUri,
-        name: "foto.jpg",
-        type: "image/jpeg",
-    } as any);
-
-    return apiFetch('/api/upload/profile-picture', {
-        method: 'POST',
-        body: formData,
-    });
-};
-
 // 2. Função para atualizar os dados de texto
 export const updateUserData = (usuario_id: number, userData: { nome?: string; email?: string; telefone?: string; cnpj?: string; senha?: string }) => {
     return apiFetch(`/api/users/${usuario_id}`, {
@@ -128,7 +109,6 @@ export const updateUserData = (usuario_id: number, userData: { nome?: string; em
         body: JSON.stringify(userData),
     });
 };
-
 
 // --- Configurações ---
 export const getConfigsByUserId = (usuario_id: number) => {
@@ -140,4 +120,97 @@ export const updateConfigs = (usuario_id: number, notificacoes_estoque: boolean,
         method: 'PUT',
         body: JSON.stringify({ notificacoes_estoque, integracao_google_calendar }),
     });
+};
+
+// --- Financeiro ---
+export const createTransaction = (
+    usuario_id: number,
+    titulo: string,
+    descricao: string,
+    valor: number,
+    data: string,
+    tipo: 'Entrada' | 'Saída',
+    categoria: string
+) => {
+    return apiFetch('/api/transactions', {
+        method: 'POST',
+        body: JSON.stringify({ usuario_id, titulo, descricao, valor, data, tipo, categoria }),
+    });
+};
+
+export const getTransactionsByUserId = (usuario_id: number) => {
+    return apiFetch(`/api/transactions/user/${usuario_id}`);
+};
+
+export const getTransactionById = (id: number) => {
+    return apiFetch(`/api/transactions/${id}`);
+};
+
+export const updateTransaction = (
+    id: number,
+    usuario_id: number,
+    titulo: string,
+    descricao: string,
+    valor: number,
+    data: string,
+    tipo: 'Entrada' | 'Saída',
+    categoria: string
+) => {
+    return apiFetch(`/api/transactions/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ usuario_id, titulo, descricao, valor, data, tipo, categoria }),
+    });
+};
+
+export const deleteTransaction = (id: number, usuario_id: number) => {
+    return apiFetch(`/api/transactions/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ usuario_id }),
+    });
+};
+
+// --- Agenda / Serviços Agendados ---
+// Busca todos os eventos do usuário logado
+export const getScheduledServices = () => {
+    return apiFetch('/api/scheduled-services');
+};
+
+// Cria um novo evento
+export const createScheduledService = (evento: {
+    cliente_id: number;
+    titulo: string;
+    descricao: string;
+    data: string; // Formato YYYY-MM-DD
+    horario: string; // Formato HH:MM
+}) => {
+    return apiFetch('/api/scheduled-services', {
+        method: 'POST',
+        body: JSON.stringify(evento),
+    });
+};
+
+// Atualiza um evento existente
+export const updateScheduledService = (id: number, evento: {
+    cliente_id: number;
+    titulo: string;
+    descricao: string;
+    data: string;
+    horario: string;
+    status: 'agendado' | 'concluido' | 'cancelado';
+}) => {
+    return apiFetch(`/api/scheduled-services/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(evento),
+    });
+};
+
+// Deleta um evento
+export const deleteScheduledService = (id: number) => {
+    return apiFetch(`/api/scheduled-services/${id}`, {
+        method: 'DELETE',
+    });
+};
+
+export const getScheduledServiceById = (id: number) => {
+    return apiFetch(`/api/scheduled-services/${id}`);
 };

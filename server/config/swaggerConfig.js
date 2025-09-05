@@ -32,7 +32,6 @@ const options = {
                         email: { type: 'string', format: 'email', description: 'Email do usuário' },
                         telefone: { type: 'string', description: 'Telefone do usuário' },
                         cnpj: { type: 'string', description: 'CNPJ do usuário (formato ##.###.###/####-##)' },
-                        foto_perfil: { type: 'string', format: 'binary', description: 'Foto de perfil do usuário (base64 ou URL)' },
                         data_criacao: { type: 'string', format: 'date-time', description: 'Data de criação da conta' }
                     }
                 },
@@ -63,7 +62,7 @@ const options = {
                         nome: { type: 'string' },
                         email: { type: 'string', format: 'email' },
                         telefone: { type: 'string' },
-                        endereco: { type: 'string' },
+                        observacao: { type: 'string' },
                         data_cadastro: { type: 'string', format: 'date-time' }
                     }
                 },

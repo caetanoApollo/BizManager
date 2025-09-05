@@ -6,12 +6,11 @@ const db = require('../config/db');
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT || "587", 10),
-    secure: process.env.EMAIL_PORT === '465', // true para 465, false para outras
+    secure: process.env.EMAIL_PORT === '465',
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
-    // Adicione esta opção para forçar uma versão compatível do TLS
     tls: {
         ciphers:'SSLv3'
     }

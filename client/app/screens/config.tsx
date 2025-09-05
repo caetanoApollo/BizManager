@@ -20,21 +20,13 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { Montserrat_400Regular } from "@expo-google-fonts/montserrat";
-import * as SplashScreen from "expo-splash-screen";
-import * as ImagePicker from "expo-image-picker";
 import { Nav } from "../components/utils";
-// ATUALIZADO: Importando as funções corretas da API
 import {
-  getConfigsByUserId,
   updateConfigs,
   getUserProfile,
-  updateUserData,       // Para atualizar dados de texto
-  uploadProfilePicture, // Para enviar a imagem
+  updateUserData,
 } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// Defina a URL base do seu servidor aqui
-const SERVER_BASE_URL = "http://SEU_IP_AQUI:5000";
 
 const SettingsPage = () => {
   const [nome, setNome] = useState(""); // Adicionado estado para o nome
@@ -42,10 +34,6 @@ const SettingsPage = () => {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-
-  // Estados separados para a imagem
-  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // URL da imagem atual no servidor
-  const [newImageUri, setNewImageUri] = useState<string | null>(null); // URI da nova imagem selecionada
 
   const [notificacoesEstoque, setNotificacoesEstoque] = useState(true);
   const [integracaoGoogleCalendar, setIntegracaoGoogleCalendar] = useState(false);
@@ -55,7 +43,6 @@ const SettingsPage = () => {
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
   useEffect(() => {
-    // ... (seu useEffect para fontes e splash screen) ...
   }, [fontsLoaded]);
 
   useEffect(() => {
@@ -69,20 +56,11 @@ const SettingsPage = () => {
         const id = parseInt(usuarioIdString, 10);
         setUserId(id);
 
-        // Carregar perfil do usuário
         const userProfile = await getUserProfile(id);
         if (userProfile) {
           setNome(userProfile.nome || "");
           setCnpj(formatCNPJ(userProfile.cnpj || ""));
           setEmail(userProfile.email || "");
-          setCurrentImageUrl(userProfile.profile_picture_url); // Armazena a URL da foto
-        }
-
-        // Carregar configurações
-        const configs = await getConfigsByUserId(id);
-        if (configs) {
-          setNotificacoesEstoque(configs.notificacoes_estoque);
-          setIntegracaoGoogleCalendar(configs.integracao_google_calendar);
         }
       } catch (error) {
         console.error("Erro ao carregar dados do usuário:", error);
@@ -95,52 +73,32 @@ const SettingsPage = () => {
     return null;
   }
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      alert("Desculpe, precisamos de permissão para acessar suas fotos!");
+  const handleUpdateAccount = async () => {
+    const usuarioIdString = await AsyncStorage.getItem('usuario_id');
+    const usuario_id = usuarioIdString ? parseInt(usuarioIdString, 10) : null;
+
+    if (usuario_id === null) {
+      Alert.alert("Erro", "Usuário não identificado.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
-    if (!result.canceled) {
-      setNewImageUri(result.assets[0].uri);
-    }
-  };
-
-  const handleUpdateAccount = async () => {
-    if (!userId) return;
 
     setLoading(true);
     try {
-      // ETAPA 1: Se uma nova imagem foi selecionada, faz o upload.
-      if (newImageUri) {
-        const uploadResponse = await uploadProfilePicture(newImageUri);
-        // Atualiza a URL da imagem no estado para refletir a mudança imediatamente
-        setCurrentImageUrl(uploadResponse.imageUrl);
-        setNewImageUri(null); // Limpa a imagem selecionada
-      }
 
-      // ETAPA 2: Atualiza os dados de texto do perfil.
       const userDataToUpdate: { nome: string; email: string; cnpj: string; senha?: string } = {
-        nome, // Adicionado nome
+        nome,
         email,
         cnpj: cnpj.replace(/[^0-9]/g, ''),
       };
       if (senha) {
         userDataToUpdate.senha = senha;
       }
-      await updateUserData(userId, userDataToUpdate);
 
-      // ETAPA 3: Atualiza as configurações.
-      await updateConfigs(userId, notificacoesEstoque, integracaoGoogleCalendar);
+      await updateUserData(usuario_id, { nome, email, cnpj, senha });
+      await updateConfigs(usuario_id, notificacoesEstoque, integracaoGoogleCalendar);
 
       Alert.alert("Sucesso", "Seu perfil foi atualizado!");
-      setSenha(''); // Limpa o campo de senha
+      setSenha('');
     } catch (error) {
       console.error("Erro ao atualizar conta:", error);
       Alert.alert("Erro", "Não foi possível atualizar seus dados. Tente novamente.");
@@ -149,15 +107,6 @@ const SettingsPage = () => {
     }
   };
 
-  // Lógica para decidir qual imagem exibir
-  let imageSource = require("../../assets/images/icon_app.png"); // Imagem padrão
-  if (newImageUri) {
-    imageSource = { uri: newImageUri }; // Prioriza a nova imagem
-  } else if (currentImageUrl) {
-    imageSource = { uri: `${SERVER_BASE_URL}${currentImageUrl}` }; // Usa a imagem do servidor
-  }
-
-  // ... (funções formatCNPJ, etc.) ...
   function formatCNPJ(value: string) {
     const numbers = value.replace(/\D/g, "");
     let cnpj = numbers;
@@ -186,15 +135,6 @@ const SettingsPage = () => {
           </View>
 
           <Text style={styles.subtitle}>CONFIGURAÇÕES</Text>
-          
-          <View style={styles.photoContainer}>
-            <TouchableOpacity onPress={pickImage} style={styles.photoCircle}>
-              <Image source={imageSource} style={styles.profileImage} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.editPhotoButton} onPress={pickImage}>
-              <Feather name="edit-2" size={20} color="#F5F5F5" />
-            </TouchableOpacity>
-          </View>
 
           <View style={styles.formContainer}>
             <View style={styles.inputGroup}>
@@ -311,33 +251,6 @@ const styles = StyleSheet.create({
     color: "#F5F5F5",
     marginTop: 10,
   },
-  photoContainer: {
-    position: "relative",
-    marginTop: 0,
-    alignItems: "center",
-  },
-  photoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(245, 245, 245, 0.09)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-    borderRadius: 60,
-  },
-  editPhotoButton: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    backgroundColor: "#5D9B9B",
-    borderRadius: 15,
-    padding: 8,
-  },
   formContainer: {
     width: "90%",
     backgroundColor: "rgba(245, 245, 245, 0.09)",
@@ -348,7 +261,6 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 15,
   },
-  // Ajuste o 'left' aqui para acomodar o maxLength menor da senha
   icon: { position: "absolute", left: 245, bottom: 10 },
   label: {
     fontSize: 25,

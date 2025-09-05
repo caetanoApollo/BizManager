@@ -1,290 +1,431 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
   ScrollView,
-  Platform,
   Alert,
-  Animated,
+  ActivityIndicator,
+  Platform,
+  Modal,
+  KeyboardAvoidingView,
 } from "react-native";
-import { MaterialIcons, AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
-import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
-import * as SplashScreen from "expo-splash-screen";
-import { useRouter } from "expo-router";
-import { Picker } from '@react-native-picker/picker';
+import { MaterialIcons, AntDesign, Feather } from "@expo/vector-icons";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Header } from "../components/utils";
+import { createTransaction, updateTransaction } from "../services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const AddNotaPage: React.FC = () => {
+// --- Paleta de Cores (Consistente com addEvento) ---
+const PALETTE = {
+  LaranjaPrincipal: "#F5A623",
+  LaranjaSecundario: "#FFBC42",
+  VerdeAgua: "#5D9B9B",
+  AzulEscuro: "#2A4D69",
+  Branco: "#F5F5F5",
+  CinzaClaro: "#ccc",
+};
+
+const AddFinanScreen: React.FC = () => {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const isEditing = !!params.id;
+
   const [titulo, setTitulo] = useState("");
   const [categoria, setCategoria] = useState("");
-  const [servicoSelecionado, setServicoSelecionado] = useState("");
-  const [dataServico, setDataServico] = useState("");
-  const [valorTotal, setValorTotal] = useState("");
+  const [tipo, setTipo] = useState<'Entrada' | 'Saída' | ''>('');
+  const [data, setData] = useState("");
+  const [valor, setValor] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [showServicos, setShowServicos] = useState(false);
-  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
-  const pickerHeight = useRef(new Animated.Value(0)).current;
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
 
-  useEffect(() => {
-    Animated.timing(pickerHeight, {
-      toValue: showServicos ? 85 : 0,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }, [showServicos]);
+  // Popula os campos se estiver editando
+  useFocusEffect(
+    useCallback(() => {
+      if (isEditing) {
+        setTitulo(params.titulo as string || '');
+        setCategoria(params.categoria as string || '');
+        setTipo(params.tipo as 'Entrada' | 'Saída' || '');
+        // Formata a data que vem da navegação (ex: YYYY-MM-DD) para DD/MM/AAAA
+        const dateFromParams = params.data as string;
+        if (dateFromParams) {
+          const [year, month, day] = dateFromParams.split('T')[0].split('-');
+          setData(`${day}/${month}/${year}`);
+        }
+        setValor(formatCurrency(params.valor as string || '0'));
+        setDescricao(params.descricao as string || '');
+      }
+    }, [params, isEditing])
+  );
 
-  const handleSalvarNota = () => {
-    if (!titulo.trim()) {
-      Alert.alert("Erro", "O título é obrigatório");
+  const handleSalvar = async () => {
+    if (!titulo.trim() || !tipo || !data.trim() || !valor.trim()) {
+      Alert.alert("Erro", "Título, Tipo, Data e Valor são obrigatórios.");
       return;
     }
 
-    if (!servicoSelecionado) {
-      Alert.alert("Erro", "Selecione um tipo");
-      return;
-    }
+    setLoading(true);
+    try {
+      const usuarioIdString = await AsyncStorage.getItem('usuario_id');
+      if (!usuarioIdString) {
+        throw new Error("ID do usuário não encontrado.");
+      }
+      const usuario_id = Number(usuarioIdString);
 
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dataServico)) {
-      Alert.alert("Erro", "Data inválida (DD/MM/AAAA)");
-      return;
-    }
+      const [dia, mes, ano] = data.split('/');
+      const formattedData = `${ano}-${mes}-${dia}`;
+      const formattedValor = parseFloat(valor.replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
 
-    if (!/^\d+([,.]\d{1,2})?$/.test(valorTotal)) {
-      Alert.alert("Erro", "Valor inválido");
-      return;
+      if (isEditing) {
+        await updateTransaction(Number(params.id), usuario_id, titulo, descricao, formattedValor, formattedData, tipo, categoria);
+        Alert.alert("Sucesso", "Lançamento atualizado com sucesso!");
+      } else {
+        await createTransaction(usuario_id, titulo, descricao, formattedValor, formattedData, tipo, categoria);
+        Alert.alert("Sucesso", "Lançamento salvo com sucesso!");
+      }
+      router.back();
+    } catch (error: any) {
+      Alert.alert("Erro ao salvar", error.message || "Não foi possível salvar o lançamento.");
+    } finally {
+      setLoading(false);
     }
-
-    Alert.alert("Sucesso", "Nota salva com sucesso!");
-    router.push("/");
   };
 
-  const formatDate = (text: string) => {
-    const cleaned = text.replace(/\D/g, '');
-    return cleaned
-      .replace(/(\d{2})(\d)/, '$1/$2')
-      .replace(/(\d{2})(\d)/, '$1/$2')
+  const formatDate = (text: string) =>
+    text
+      .replace(/\D/g, "")
+      .replace(/(\d{2})(\d)/, "$1/$2")
+      .replace(/(\d{2})(\d)/, "$1/$2")
       .slice(0, 10);
-  };
 
   const formatCurrency = (text: string) => {
     const cleaned = text.replace(/\D/g, '');
-    if (cleaned.length === 0) return '';
-    const integerPart = cleaned.slice(0, -2) || '0';
-    const decimalPart = cleaned.slice(-2);
-    return `R$ ${parseInt(integerPart, 10).toLocaleString('pt-BR')},${decimalPart}`;
+    if (!cleaned) return '';
+    const number = parseFloat(cleaned) / 100;
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(number);
   };
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  const handleSelectType = (selectedType: 'Entrada' | 'Saída') => {
+    setTipo(selectedType);
+    setModalVisible(false);
+  };
+
+  const pageTitle = isEditing ? "EDITAR LANÇAMENTO" : "NOVO LANÇAMENTO";
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#2A4D69" }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <LinearGradient
+      colors={[PALETTE.AzulEscuro, PALETTE.VerdeAgua]}
+      style={styles.container}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <LinearGradient
-          colors={["#5D9B9B", "#2A4D69"]}
-          style={styles.container}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
         >
           <Header />
 
-          <View style={styles.subtitle}>
+          <View style={styles.header}>
             <AntDesign
               name="arrowleft"
               size={30}
-              color="#F5F5F5"
+              color={PALETTE.Branco}
               onPress={() => router.back()}
             />
-            <MaterialCommunityIcons name="finance" size={30} color="#fff" />
-            <Text style={{ fontSize: 25, color: "#F5F5F5", fontFamily: "BebasNeue" }}>FINANCEIRO</Text>
+            <MaterialIcons name={isEditing ? "edit" : "add-card"} size={30} color={PALETTE.Branco} />
+            <Text style={styles.title}>{pageTitle}</Text>
           </View>
 
-          <View style={styles.inputContainer}>
-            <View style={styles.boxTitle}>
-              <MaterialIcons
-                name="add-card"
-                size={30}
-                color="#F5F5F5"
-                style={{ marginRight: 10 }}
+          <View style={styles.formContainer}>
+            {/* Seção O Quê? */}
+            <Text style={styles.sectionTitle}>O Lançamento</Text>
+            <View style={styles.inputGroup}>
+              <Feather
+                name="edit-3"
+                size={20}
+                color={PALETTE.CinzaClaro}
+                style={styles.icon}
               />
-              <Text style={styles.sectionTitle}>Adicionar Lançamento</Text>
+              <TextInput
+                style={styles.input}
+                value={titulo}
+                onChangeText={setTitulo}
+                placeholder="Título do Lançamento"
+                placeholderTextColor={PALETTE.CinzaClaro}
+              />
             </View>
-            <Text style={styles.label}>Título:</Text>
-            <TextInput
-              style={styles.input}
-              value={titulo}
-              onChangeText={setTitulo}
-              placeholder="Digite o título"
-              placeholderTextColor="#ccc"
-            />
+            <View style={styles.inputGroup}>
+              <Feather
+                name="tag"
+                size={20}
+                color={PALETTE.CinzaClaro}
+                style={styles.icon}
+              />
+              <TextInput
+                style={styles.input}
+                value={categoria}
+                onChangeText={setCategoria}
+                placeholder="Categoria (opcional)"
+                placeholderTextColor={PALETTE.CinzaClaro}
+              />
+            </View>
+            <View style={[styles.inputGroup, styles.alignTop]}>
+              <Feather
+                name="file-text"
+                size={20}
+                color={PALETTE.CinzaClaro}
+                style={[styles.icon, { paddingTop: 12 }]}
+              />
+              <TextInput
+                style={[styles.input, styles.multilineInput]}
+                value={descricao}
+                onChangeText={setDescricao}
+                placeholder="Descrição (opcional)"
+                placeholderTextColor={PALETTE.CinzaClaro}
+                multiline
+              />
+            </View>
 
-            <Text style={styles.label}>Categoria:</Text>
-            <TextInput
-              style={styles.input}
-              value={categoria}
-              onChangeText={setCategoria}
-              placeholder="Digite a categoria"
-              placeholderTextColor="#ccc"
-            />
+            {/* Seção Detalhes */}
+            <Text style={styles.sectionTitle}>Detalhes Financeiros</Text>
+            <View style={styles.row}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                <Feather
+                  name="dollar-sign"
+                  size={20}
+                  color={PALETTE.CinzaClaro}
+                  style={styles.icon}
+                />
+                <TextInput
+                  style={styles.input}
+                  value={valor}
+                  onChangeText={setValor}
+                  placeholder="R$ 0,00"
+                  placeholderTextColor={PALETTE.CinzaClaro}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <TouchableOpacity
+                  style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+                  onPress={() => setModalVisible(true)}
+                >
+                  <Feather
+                    name={tipo === 'Entrada' ? 'arrow-up-circle' : tipo === 'Saída' ? 'arrow-down-circle' : 'help-circle'}
+                    size={20}
+                    color={PALETTE.CinzaClaro}
+                    style={styles.icon}
+                  />
+                  <Text
+                    style={[
+                      styles.input,
+                      styles.pickerText,
+                      !tipo && styles.placeholderText,
+                    ]}
+                  >
+                    {tipo || "Tipo"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
-            <Text style={styles.label}>Tipo:</Text>
+            {/* Seção Quando? */}
+            <Text style={styles.sectionTitle}>Quando?</Text>
+            <View style={styles.inputGroup}>
+              <Feather
+                name="calendar"
+                size={20}
+                color={PALETTE.CinzaClaro}
+                style={styles.icon}
+              />
+              <TextInput
+                style={styles.input}
+                value={data}
+                onChangeText={(text) => setData(formatDate(text))}
+                placeholder="DD/MM/AAAA"
+                placeholderTextColor={PALETTE.CinzaClaro}
+                keyboardType="numeric"
+                maxLength={10}
+              />
+            </View>
+
             <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowServicos(!showServicos)}
+              style={styles.button}
+              onPress={handleSalvar}
+              disabled={loading}
             >
-              <Text style={{
-                color: servicoSelecionado ? '#F5F5F5' : '#ccc',
-                fontFamily: "BebasNeue",
-                fontSize: 20
-              }}>
-                {servicoSelecionado || "Entrada/Saída"}
-              </Text>
+              {loading ? (
+                <ActivityIndicator color={PALETTE.Branco} />
+              ) : (
+                <>
+                  <Feather
+                    name="check-circle"
+                    size={20}
+                    color={PALETTE.Branco}
+                  />
+                  <Text style={styles.buttonText}>Salvar Lançamento</Text>
+                </>
+              )}
             </TouchableOpacity>
-
-            <Animated.View style={[styles.pickerContainer, { height: pickerHeight }]}>
-              <Picker
-                selectedValue={servicoSelecionado}
-                onValueChange={(value) => {
-                  setServicoSelecionado(value);
-                  setShowServicos(false);
-                }}
-                style={styles.picker}
-                itemStyle={styles.pickerItem}
-              >
-                <Picker.Item label="Selecione um tipo" value="" />
-                <Picker.Item label="Entrada" value="Entrada" />
-                <Picker.Item label="Saída" value="Saída" />
-              </Picker>
-            </Animated.View>
-
-            <Text style={styles.label}>Data do Serviço:</Text>
-            <TextInput
-              style={styles.input}
-              value={dataServico}
-              onChangeText={(text) => setDataServico(formatDate(text))}
-              placeholder="DD/MM/AAAA"
-              placeholderTextColor="#ccc"
-              keyboardType="numeric"
-              maxLength={10}
-            />
-
-            <Text style={styles.label}>Valor Total (R$):</Text>
-            <TextInput
-              style={styles.input}
-              value={valorTotal}
-              onChangeText={(text) => setValorTotal(formatCurrency(text))}
-              placeholder="R$ 0,00"
-              placeholderTextColor="#ccc"
-              keyboardType="numeric"
-            />
-
-            <Text style={styles.label}>Descrição:</Text>
-            <TextInput
-              style={[styles.input, { maxHeight: 500, minHeight: 100 }]}
-              value={descricao}
-              onChangeText={setDescricao}
-              placeholder="Descrição"
-              placeholderTextColor="#ccc"
-              multiline
-              numberOfLines={4}
-              textAlign="left"
-              maxLength={200}
-            />
           </View>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleSalvarNota}
-          >
-            <Text style={styles.buttonText}>Salvar Nota</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Modal de Seleção de Tipo */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Selecione um Tipo</Text>
+            <TouchableOpacity
+              style={styles.clientItem}
+              onPress={() => handleSelectType('Entrada')}
+            >
+              <Text style={styles.clientItemText}>Entrada</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.clientItem}
+              onPress={() => handleSelectType('Saída')}
+            >
+              <Text style={styles.clientItemText}>Saída</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { alignItems: "center" },
-  subtitle: {
+  container: { flex: 1 },
+  scrollContainer: { flexGrow: 1, paddingBottom: 4 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
-    padding: 5,
+    padding: 20,
     paddingTop: 10,
-    marginRight: "50%",
-    alignItems: "center",
-    flexDirection: "row",
+    alignSelf: "flex-start",
   },
-  boxTitle: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
+  title: { color: PALETTE.Branco, fontSize: 25, fontFamily: "BebasNeue" },
+  formContainer: {
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    padding: 20,
+    marginHorizontal: 20,
+    borderRadius: 16,
   },
   sectionTitle: {
+    color: PALETTE.Branco,
+    fontSize: 22,
     fontFamily: "BebasNeue",
-    color: "#fff",
-    fontSize: 25,
+    marginBottom: 15,
+    borderLeftWidth: 3,
+    borderLeftColor: PALETTE.LaranjaPrincipal,
+    paddingLeft: 10,
   },
-  inputContainer: {
-    width: "90%",
-    backgroundColor: "rgba(245, 245, 245, 0.09)",
-    borderRadius: 10,
-    padding: 20,
-    marginTop: 20,
-  },
-  input: {
-    backgroundColor: "rgba(42, 77, 105, 0.35)",
-    borderRadius: 5,
-    padding: 10,
-    color: "#F5F5F5",
-    fontSize: 20,
-    marginBottom: 10,
-    width: "100%",
-    fontFamily: "Montserrat",
-  },
-  label: {
-    color: "#F5F5F5",
-    fontSize: 25,
-    fontFamily: "BebasNeue",
-    marginBottom: 5,
-    marginTop: 10,
-  },
-  button: {
-    backgroundColor: "#5D9B9B",
-    borderRadius: 100,
-    padding: 15,
-    width: "60%",
+  inputGroup: {
+    marginBottom: 20,
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
+  },
+  alignTop: { alignItems: "flex-start" },
+  icon: { paddingLeft: 15, paddingRight: 10 },
+  input: {
+    flex: 1,
+    paddingVertical: 15,
+    paddingRight: 15,
+    color: PALETTE.Branco,
+    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+  },
+  multilineInput: { height: 100, textAlignVertical: "top", paddingTop: 15 },
+  row: { flexDirection: "row", justifyContent: "space-between" },
+  button: {
+    flexDirection: "row",
+    backgroundColor: PALETTE.VerdeAgua,
+    borderRadius: 30,
+    padding: 15,
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 20,
-    marginBottom: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
   },
   buttonText: {
-    fontFamily: "BebasNeue",
+    color: PALETTE.Branco,
     fontSize: 20,
-    color: "#fff",
+    fontFamily: "BebasNeue",
+    marginLeft: 10,
   },
-  pickerContainer: {
-    overflow: 'hidden',
-    width: '100%',
-    backgroundColor: 'rgba(42, 77, 105, 0.35)',
-    borderRadius: 10,
+  pickerText: { paddingVertical: 15, paddingRight: 15, paddingLeft: 0 },
+  placeholderText: { color: PALETTE.CinzaClaro },
+  // Estilos do Modal
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
   },
-  picker: {
-    color: '#F5F5F5',
+  modalContainer: {
+    backgroundColor: PALETTE.AzulEscuro,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
   },
-  pickerItem: {
-    marginVertical: -80,
+  modalTitle: {
+    color: PALETTE.Branco,
+    fontSize: 22,
+    fontFamily: "BebasNeue",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  clientItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.2)",
+  },
+  clientItemText: {
+    color: PALETTE.Branco,
     fontSize: 16,
-    color: '#F5F5F5',
+    fontFamily: "Montserrat_400Regular",
+    textAlign: 'center',
+  },
+  modalCloseButton: {
+    backgroundColor: PALETTE.LaranjaPrincipal,
+    borderRadius: 25,
+    padding: 15,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  modalCloseButtonText: {
+    color: PALETTE.Branco,
+    fontSize: 16,
     fontFamily: "BebasNeue",
   },
 });
 
-export default AddNotaPage;
+export default AddFinanScreen;

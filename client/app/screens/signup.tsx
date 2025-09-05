@@ -19,7 +19,6 @@ import {
 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
-import * as ImagePicker from "expo-image-picker";
 import * as SplashScreen from "expo-splash-screen";
 import { useRouter } from "expo-router";
 import { cadastro } from "../services/api";
@@ -34,7 +33,6 @@ const CadastroPage: React.FC = () => {
   const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [confirmarSenhaVisivel, setConfirmarSenhaVisivel] = useState(false);
   const [telefone, setTelefone] = useState("");
-  const [imageUri, setImageUri] = useState<string | null>(null); // Renomeado para clareza
   const [loading, setLoading] = useState(false); // Estado de carregamento
 
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
@@ -119,13 +117,12 @@ const CadastroPage: React.FC = () => {
         telefone,
         cnpj.replace(/[^0-9]/g, ''), 
         senha,
-        imageUri || undefined 
       );
       Alert.alert(
         "Sucesso!",
         "Sua conta foi criada com sucesso. Faça o login para continuar."
       );
-      router.push("/screens/home"); 
+      router.push("/screens/login"); 
     } catch (err: any) {
       Alert.alert(
         "Erro no Cadastro",
@@ -133,26 +130,6 @@ const CadastroPage: React.FC = () => {
       );
     } finally {
       setLoading(false); 
-    }
-  };
-
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permissão Necessária",
-        "Precisamos de permissão para acessar sua galeria de fotos."
-      );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
     }
   };
 
@@ -172,21 +149,6 @@ const CadastroPage: React.FC = () => {
           </View>
           <Text style={styles.subtitle}>CADASTRO</Text>
           <View style={styles.inputContainer}>
-            <View style={styles.photoContainer}>
-              <TouchableOpacity onPress={pickImage} style={styles.photoCircle}>
-                {imageUri ? (
-                  <Image source={{ uri: imageUri }} style={styles.profileImage} />
-                ) : (
-                  <FontAwesome5 name="user" size={60} color="#F5F5F5" />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.editPhotoButton}
-                onPress={pickImage}
-              >
-                <Feather name="edit-2" size={20} color="#F5F5F5" />
-              </TouchableOpacity>
-            </View>
             <Text style={styles.label}>CNPJ:</Text>
             <TextInput
               style={styles.input}
@@ -220,7 +182,7 @@ const CadastroPage: React.FC = () => {
               style={styles.input}
               value={telefone}
               onChangeText={setTelefone}
-              placeholder="Digite seu telefone (Opcional)"
+              placeholder="Digite seu telefone"
               placeholderTextColor="#ccc"
               keyboardType="phone-pad"
               maxLength={15}
@@ -283,7 +245,7 @@ const CadastroPage: React.FC = () => {
             <Text style={styles.recoverText}>JÁ POSSUI UMA CONTA?</Text>
             <TouchableOpacity
               style={styles.recoverButton}
-              onPress={() => router.push("/screens/home")}
+              onPress={() => router.push("/screens/login")}
             >
               <Text style={styles.recoverButtonText}>FAZER LOGIN</Text>
             </TouchableOpacity>
@@ -378,34 +340,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: "BebasNeue",
     color: "#F5F5F5",
-  },
-  photoContainer: {
-    position: "relative",
-    marginBottom: 15,
-    alignItems: "center",
-  },
-  photoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(245, 245, 245, 0.09)",
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: 'hidden', 
-  },
-  profileImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
-  editPhotoButton: {
-    position: "absolute",
-    right: '30%',
-    bottom: 0,
-    backgroundColor: "#5D9B9B",
-    borderRadius: 15,
-    padding: 8,
-  },
+  }
 });
 
 export default CadastroPage;

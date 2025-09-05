@@ -3,9 +3,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
-exports.cadastrarUsuario = async (req, res) => {
+exports.registerUser = async (req, res) => {
     const { nome, email, senha, telefone, cnpj } = req.body;
-    const foto_perfil = req.file ? req.file.buffer : null;
     if (!nome || !email || !senha || !telefone || !cnpj) {
         console.warn('Tentativa de cadastro com campos obrigatórios faltando.');
         return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
@@ -13,15 +12,20 @@ exports.cadastrarUsuario = async (req, res) => {
     try {
         const [existe] = await db.query('SELECT id FROM usuarios WHERE cnpj = ? OR email = ?', [cnpj, email]);
         if (existe.length > 0) {
-            console.warn('Tentativa de cadastro com CNPJ ou e-mail já cadastrado.');
-            return res.status(409).json({ error: 'CNPJ ou e-mail já cadastrado.' });
+            return res.status(409).json({ error: 'Já existe um usuário com este CNPJ ou E-mail.' });
         }
         const hashedPassword = await bcrypt.hash(senha, 10);
         const [result] = await db.query(
-            'INSERT INTO usuarios (nome, email, senha, telefone, cnpj, foto_perfil) VALUES (?, ?, ?, ?, ?, ?)',
-            [nome, email, hashedPassword, telefone, cnpj, foto_perfil]
+            'INSERT INTO usuarios (nome, email, senha, telefone, cnpj) VALUES (?, ?, ?, ?, ?)',
+            [nome, email, hashedPassword, telefone, cnpj]
         );
         console.log(`Novo usuário cadastrado: ID ${result.insertId}, CNPJ ${cnpj}, E-mail ${email}`);
+
+        await db.query(
+            'INSERT INTO configuracoes (usuario_id, notificacoes_estoque, integracao_google_calendar) VALUES (?, TRUE, FALSE)',
+            [result.insertId]
+        );
+
         res.status(201).json({ id: result.insertId, nome, email, telefone, cnpj });
     } catch (err) {
         console.error('Erro ao cadastrar usuário:', err);
@@ -30,14 +34,22 @@ exports.cadastrarUsuario = async (req, res) => {
 };
 
 
-exports.loginUsuario = async (req, res) => {
+exports.loginUser = async (req, res) => {
     const { identificador, senha } = req.body;
     if (!identificador || !senha) {
         console.warn('Tentativa de login sem identificador ou senha.');
         return res.status(400).json({ error: 'Identificador (CNPJ ou E-mail) e senha são obrigatórios.' });
     }
     try {
-        const [rows] = await db.query('SELECT * FROM usuarios WHERE cnpj = ? OR email = ?', [identificador, identificador]);
+        // CORREÇÃO APLICADA AQUI
+        // Limpa o CNPJ de qualquer formatação, mantendo o e-mail intacto.
+        const loginIdentificador = identificador.includes('@') ? identificador : identificador.replace(/\D/g, '');
+
+        const [rows] = await db.query(
+            'SELECT * FROM usuarios WHERE cnpj = ? OR email = ?',
+            [loginIdentificador, loginIdentificador]
+        );
+
         if (rows.length === 0) {
             console.warn(`Tentativa de login com identificador não cadastrado: ${identificador}`);
             return res.status(401).json({ error: 'Usuário não encontrado.' });
@@ -62,10 +74,9 @@ exports.loginUsuario = async (req, res) => {
     }
 };
 
-exports.editarUsuario = async (req, res) => {
+exports.editUser = async (req, res) => {
     const { id } = req.params;
     const { nome, email, telefone, cnpj, senha } = req.body;
-    const foto_perfil = req.file ? req.file.buffer : undefined;
 
     try {
         const [rows] = await db.query('SELECT * FROM usuarios WHERE id = ?', [id]);
@@ -79,7 +90,6 @@ exports.editarUsuario = async (req, res) => {
         if (email) { campos.push('email = ?'); valores.push(email); }
         if (telefone) { campos.push('telefone = ?'); valores.push(telefone); }
         if (cnpj) { campos.push('cnpj = ?'); valores.push(cnpj); }
-        if (foto_perfil !== undefined) { campos.push('foto_perfil = ?'); valores.push(foto_perfil); }
         if (senha) {
             const hashedPassword = await bcrypt.hash(senha, 10);
             campos.push('senha = ?');
@@ -98,7 +108,7 @@ exports.editarUsuario = async (req, res) => {
     }
 };
 
-exports.excluirUsuario = async (req, res) => {
+exports.deleteUser = async (req, res) => {
     const { id } = req.params;
     try {
         const [result] = await db.query('DELETE FROM usuarios WHERE id = ?', [id]);
@@ -119,71 +129,59 @@ exports.getUserProfile = async (req, res) => {
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Usuário não encontrado.' });
         }
-        const user = rows[0];
-
-        if (user.foto_perfil) {
-            user.profile_picture_base64 = Buffer.from(user.foto_perfil).toString('base64');
-        }
-
-        res.status(200).json(user);
+        const usuario = rows[0];
+        res.json({
+            id: usuario.id,
+            nome: usuario.nome,
+            email: usuario.email,
+            telefone: usuario.telefone,
+            cnpj: usuario.cnpj,
+        });
     } catch (err) {
-        console.error('Erro ao buscar perfil:', err);
-        res.status(500).json({ error: 'Erro ao buscar perfil.' });
+        console.error('Erro ao buscar perfil do usuário:', err);
+        res.status(500).json({ error: 'Erro ao buscar perfil do usuário.' });
     }
 };
 
 exports.updateUserProfile = async (req, res) => {
     const { id } = req.params;
-    const { nome, email, telefone, cnpj, senha } = req.body; //
+    const { nome, email, telefone, cnpj, senha } = req.body;
 
     try {
-        let query = 'UPDATE usuarios SET ';
-        const params = [];
-        const fieldsToUpdate = [];
+        const [rows] = await db.query('SELECT * FROM usuarios WHERE id = ?', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+        const user = rows[0]; // <-- Defina a variável user aqui
 
-        if (nome !== undefined) {
-            fieldsToUpdate.push('nome = ?');
-            params.push(nome);
-        }
-        if (email !== undefined) {
-            fieldsToUpdate.push('email = ?');
-            params.push(email);
-        }
-        if (telefone !== undefined) {
-            fieldsToUpdate.push('telefone = ?');
-            params.push(telefone);
-        }
-        if (cnpj !== undefined) {
-            const rawCnpj = cnpj.replace(/[^0-9]/g, '');
-            fieldsToUpdate.push('cnpj = ?');
-            params.push(rawCnpj);
-        }
-        if (senha !== undefined && senha !== '') {
-            const hashedPassword = await bcrypt.hash(senha, 10); // Hash da nova senha
-            fieldsToUpdate.push('senha = ?');
-            params.push(hashedPassword);
+        // Monte o array de campos a serem atualizados
+        const campos = [];
+        const valores = [];
+
+        if (nome) { campos.push('nome = ?'); valores.push(nome); }
+        if (email) { campos.push('email = ?'); valores.push(email); }
+        if (telefone) { campos.push('telefone = ?'); valores.push(telefone); }
+        if (cnpj) { campos.push('cnpj = ?'); valores.push(cnpj); }
+        if (senha) {
+            const hashedPassword = await bcrypt.hash(senha, 10);
+            campos.push('senha = ?');
+            valores.push(hashedPassword);
         }
 
-        if (user.foto_perfil) {
-            user.profile_picture_base64 = Buffer.from(user.foto_perfil).toString('base64');
+        if (campos.length === 0) {
+            return res.status(400).json({ error: 'Nenhum dado para atualizar.' });
         }
 
-        if (fieldsToUpdate.length === 0) {
-            return res.status(400).json({ error: 'Nenhum dado para atualizar fornecido.' });
-        }
+        valores.push(id);
 
-        query += fieldsToUpdate.join(', ') + ' WHERE id = ?';
-        params.push(id);
+        await db.query(
+            `UPDATE usuarios SET ${campos.join(', ')} WHERE id = ?`,
+            valores
+        );
 
-        const [result] = await db.query(query, params); //
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Usuário não encontrado ou nenhum dado alterado.' });
-        }
-
-        res.status(200).json({ message: 'Dados do usuário atualizados com sucesso!' });
+        res.json({ message: 'Dados do usuário atualizados com sucesso.' });
     } catch (err) {
-        console.error('Erro ao atualizar dados do usuário:', err); //
+        console.error('Erro ao atualizar dados do usuário:', err);
         res.status(500).json({ error: 'Erro ao atualizar dados do usuário.' });
     }
 };

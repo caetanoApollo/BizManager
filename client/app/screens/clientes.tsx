@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons, AntDesign, FontAwesome } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import * as SplashScreen from "expo-splash-screen";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -21,48 +22,61 @@ interface Client {
     nome: string;
     email: string;
     telefone: string;
-    endereco: string;
+    observacao: string;
     data_cadastro: string;
 }
 
 const ClientsScreen: React.FC = () => {
     const router = useRouter();
     const [clients, setClients] = useState<Client[]>([]);
-    const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular }); 
+    const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
 
-    const fetchClients = useCallback(async () => { 
-        const userId = 1; // TODO: Obtenha o ID do usuário logado de forma segura
+    const fetchClients = useCallback(async () => {
         try {
-            const fetchedClients = await getClients(userId);
-            setClients(fetchedClients);
+            const userIdString = await AsyncStorage.getItem('usuario_id');
+            if (userIdString) {
+                const userId = Number(userIdString);
+                const fetchedClients = await getClients(userId);
+                setClients(fetchedClients);
+            } else {
+                // Lidar com o caso onde o ID do usuário não é encontrado
+                Alert.alert("Erro", "ID do usuário não encontrado. Faça o login novamente.");
+            }
         } catch (error: any) {
             Alert.alert("Erro", error.message || "Não foi possível carregar os clientes.");
         }
     }, []);
 
-    useEffect(() => { 
+    useEffect(() => {
         async function prepare() {
             await SplashScreen.preventAutoHideAsync();
         }
         prepare();
     }, []);
 
-    useEffect(() => { 
+    useEffect(() => {
         if (fontsLoaded) {
             SplashScreen.hideAsync();
         }
     }, [fontsLoaded]);
 
-    useFocusEffect( // Hook 5
+    useFocusEffect( 
         useCallback(() => {
             fetchClients();
         }, [fetchClients])
     );
 
+    const handleViewClient = (client: Client) => {
+        router.push({
+            pathname: "/screens/detalhesCliente",
+            params: { clientId: client.id }
+        });
+    };
+
     const handleEditClient = (client: Client) => {
         router.push({
             pathname: "/screens/addCliente",
-            params: { clientId: client.id, clientName: client.nome, clientEmail: client.email, clientPhone: client.telefone, clientAddress: client.endereco },
+            params: { clientId: client.id },
         });
     };
 
@@ -78,11 +92,19 @@ const ClientsScreen: React.FC = () => {
                 {
                     text: "Excluir",
                     onPress: async () => {
-                        const userId = 1; // TODO: Obtenha o ID do usuário logado de forma segura
+                        const userIdString = await AsyncStorage.getItem('usuario_id');
+                        const userId = userIdString ? Number(userIdString) : null;
+
+                        if (userId === null) {
+                            Alert.alert("Erro", "ID do usuário não encontrado.");
+                            return;
+                        }
+
                         try {
+                            // A sua função de API para deletar já está pronta para receber o ID do cliente e o ID do usuário
                             await deleteClient(clientId, userId);
                             Alert.alert("Sucesso", "Cliente excluído com sucesso!");
-                            fetchClients();
+                            fetchClients(); // Atualiza a lista após a exclusão
                         } catch (error: any) {
                             Alert.alert("Erro", error.message || "Erro ao excluir cliente.");
                         }
@@ -93,7 +115,7 @@ const ClientsScreen: React.FC = () => {
     };
 
     if (!fontsLoaded) {
-        return null; 
+        return null;
     }
 
     return (
@@ -116,18 +138,32 @@ const ClientsScreen: React.FC = () => {
                         data={clients}
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={({ item }) => (
-                            <View style={styles.tableRow}>
-                                <Text style={styles.tableCell}>{item.nome}</Text>
-                                <Text style={styles.tableCell}>{item.telefone}</Text>
-                                <View style={styles.actionButtons}>
-                                    <TouchableOpacity onPress={() => handleEditClient(item)}>
-                                        <FontAwesome name="edit" size={20} color="#F5A623" style={styles.actionIcon} />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => handleDeleteClient(item.id)}>
-                                        <FontAwesome name="trash" size={20} color="#FF6347" style={styles.actionIcon} />
-                                    </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => router.push({ pathname: '/screens/detalhesCliente', params: { clientId: item.id } })}
+                            >
+                                <View style={styles.tableRow}>
+                                    <Text style={styles.tableCell}>{item.nome}</Text>
+                                    <Text style={styles.tableCell}>{item.telefone}</Text>
+                                    <View style={styles.actionButtons}>
+                                        <TouchableOpacity onPress={() => handleEditClient(item)}>
+                                            <FontAwesome
+                                                name="edit"
+                                                size={20}
+                                                color="#F5A623"
+                                                style={styles.actionIcon}
+                                            />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => handleDeleteClient(item.id)}>
+                                            <FontAwesome
+                                                name="trash"
+                                                size={20}
+                                                color="#FF6347"
+                                                style={styles.actionIcon}
+                                            />
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                         )}
                         ListEmptyComponent={() => (
                             <Text style={styles.emptyListText}>Nenhum cliente cadastrado.</Text>

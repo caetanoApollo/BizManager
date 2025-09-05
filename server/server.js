@@ -40,9 +40,6 @@ app.use('/api', scheduledServiceRoutes);
 const configRouter = require('./routers/configRouter');
 app.use('/api', configRouter);
 
-const uploadRouter = require('./routers/uploadRouter');
-app.use('/api/upload', uploadRouter);
-
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); 
 
 const PORT = process.env.PORT || 3001;
