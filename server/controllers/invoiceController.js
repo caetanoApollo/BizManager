@@ -2,7 +2,6 @@ const db = require('../config/db');
 
 exports.createInvoice = async (req, res) => {
     const { usuario_id, cliente_id, numero, servico_fornecido, cnpj_tomador, data_emissao, valor, status } = req.body;
-    // const arquivo_pdf = req.file ? req.file.buffer : null; 
 
     try {
         const [result] = await db.query(
@@ -33,7 +32,6 @@ exports.getInvoicesByUserId = async (req, res) => {
 exports.updateInvoice = async (req, res) => {
     const { id } = req.params;
     const { usuario_id, cliente_id, numero, servico_fornecido, cnpj_tomador, data_emissao, valor, status } = req.body;
-    // const arquivo_pdf = req.file ? req.file.buffer : undefined; // Se você estiver usando multer para PDF
 
     try {
         const [existingInvoice] = await db.query('SELECT id FROM notas_fiscais WHERE id = ? AND usuario_id = ?', [id, usuario_id]);
@@ -50,7 +48,6 @@ exports.updateInvoice = async (req, res) => {
             valor, 
             status: status || 'emitida'
         };
-        // if (arquivo_pdf !== undefined) { updateFields.arquivo_pdf = arquivo_pdf; }
 
         const [result] = await db.query('UPDATE notas_fiscais SET ? WHERE id = ?', [updateFields, id]);
         

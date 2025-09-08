@@ -9,19 +9,26 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
-  Image,
-  ActivityIndicator, 
+  ActivityIndicator,
 } from "react-native";
 import {
   MaterialCommunityIcons,
   Feather,
-  FontAwesome5,
+  AntDesign,
 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
-import * as SplashScreen from "expo-splash-screen";
+import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import { useRouter } from "expo-router";
 import { cadastro } from "../services/api";
+
+const PALETTE = {
+  LaranjaPrincipal: "#F5A623",
+  VerdeAgua: "#5D9B9B",
+  AzulEscuro: "#2A4D69",
+  Branco: "#F5F5F5",
+  CinzaClaro: "#ccc",
+};
 
 const CadastroPage: React.FC = () => {
   const router = useRouter();
@@ -33,66 +40,23 @@ const CadastroPage: React.FC = () => {
   const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [confirmarSenhaVisivel, setConfirmarSenhaVisivel] = useState(false);
   const [telefone, setTelefone] = useState("");
-  const [loading, setLoading] = useState(false); // Estado de carregamento
+  const [loading, setLoading] = useState(false);
 
-  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
-
-  useEffect(() => {
-    async function prepare() {
-      await SplashScreen.preventAutoHideAsync();
-    }
-    prepare();
-  }, []);
-
-  useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) {
-    return null;
-  }
+  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
   const formatCNPJ = (value: string) => {
-    // Remove tudo que não é dígito
     const cleanedValue = value.replace(/\D/g, "");
-
-    // Aplica a máscara de CNPJ
-    if (cleanedValue.length <= 2) {
-      return cleanedValue;
-    } else if (cleanedValue.length <= 5) {
-      return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(2)}`;
-    } else if (cleanedValue.length <= 8) {
-      return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(
-        2,
-        5
-      )}.${cleanedValue.slice(5)}`;
-    } else if (cleanedValue.length <= 12) {
-      return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(
-        2,
-        5
-      )}.${cleanedValue.slice(5, 8)}/${cleanedValue.slice(8)}`;
-    } else {
-      return `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(
-        2,
-        5
-      )}.${cleanedValue.slice(5, 8)}/${cleanedValue.slice(
-        8,
-        12
-      )}-${cleanedValue.slice(12, 14)}`;
-    }
-  };
-
-  const handleCNPJChange = (value: string) => {
-    const formattedCNPJ = formatCNPJ(value);
-    setCnpj(formattedCNPJ);
+    let formatted = cleanedValue;
+    if (cleanedValue.length > 2) formatted = `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(2)}`;
+    if (cleanedValue.length > 5) formatted = `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(2, 5)}.${cleanedValue.slice(5)}`;
+    if (cleanedValue.length > 8) formatted = `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(2, 5)}.${cleanedValue.slice(5, 8)}/${cleanedValue.slice(8)}`;
+    if (cleanedValue.length > 12) formatted = `${cleanedValue.slice(0, 2)}.${cleanedValue.slice(2, 5)}.${cleanedValue.slice(5, 8)}/${cleanedValue.slice(8, 12)}-${cleanedValue.slice(12, 14)}`;
+    return formatted;
   };
 
   const handleCadastro = async () => {
-    // --- Validações ---
-    if (!nome || !email || !cnpj || !senha || !confirmarSenha) {
-      Alert.alert("Erro", "Por favor, preencha todos os campos obrigatórios.");
+    if (!nome || !email || !cnpj || !senha || !confirmarSenha || !telefone) {
+      Alert.alert("Erro", "Por favor, preencha todos os campos.");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -109,238 +73,131 @@ const CadastroPage: React.FC = () => {
       return;
     }
 
-    setLoading(true); 
+    setLoading(true);
     try {
-      await cadastro(
-        nome,
-        email,
-        telefone,
-        cnpj.replace(/[^0-9]/g, ''), 
-        senha,
-      );
-      Alert.alert(
-        "Sucesso!",
-        "Sua conta foi criada com sucesso. Faça o login para continuar."
-      );
-      router.push("/screens/login"); 
+      await cadastro(nome, email, telefone, cnpj.replace(/[^\d]/g, ''), senha);
+      Alert.alert("Sucesso!", "Sua conta foi criada. Faça o login para continuar.");
+      router.replace("/screens/login");
     } catch (err: any) {
-      Alert.alert(
-        "Erro no Cadastro",
-        err.message || "Não foi possível criar a conta. Tente novamente."
-      );
+      Alert.alert("Erro no Cadastro", err.message || "Não foi possível criar a conta.");
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#2A4D69" }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-    >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <LinearGradient
-          colors={["#5D9B9B", "#2A4D69"]}
-          style={styles.container}
-        >
+    <LinearGradient colors={[PALETTE.AzulEscuro, PALETTE.VerdeAgua]} style={styles.container}>
+      <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <Text style={styles.title}>BIZMANAGER</Text>
+          <Text style={styles.title}>BIZMANAGER</Text>
+            <Text style={styles.create}>Criar Conta</Text>
           </View>
-          <Text style={styles.subtitle}>CADASTRO</Text>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>CNPJ:</Text>
-            <TextInput
-              style={styles.input}
-              value={cnpj}
-              onChangeText={handleCNPJChange}
-              placeholder="Digite seu CNPJ"
-              placeholderTextColor="#ccc"
-              maxLength={18}
-              keyboardType="numeric"
-            />
-            <Text style={styles.label}>NOME:</Text>
-            <TextInput
-              style={styles.input}
-              value={nome}
-              onChangeText={setNome}
-              placeholder="Digite seu nome"
-              placeholderTextColor="#ccc"
-            />
-            <Text style={styles.label}>EMAIL:</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Digite seu email"
-              placeholderTextColor="#ccc"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <Text style={styles.label}>TELEFONE:</Text>
-            <TextInput
-              style={styles.input}
-              value={telefone}
-              onChangeText={setTelefone}
-              placeholder="Digite seu telefone"
-              placeholderTextColor="#ccc"
-              keyboardType="phone-pad"
-              maxLength={15}
-            />
-            <Text style={styles.label}>SENHA:</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.input}
-                value={senha}
-                onChangeText={setSenha}
-                secureTextEntry={!senhaVisivel}
-                placeholder="Mínimo 6 caracteres"
-                placeholderTextColor="#ccc"
-              />
-              <TouchableOpacity
-                onPress={() => setSenhaVisivel(!senhaVisivel)}
-                style={styles.icon}
-              >
-                <MaterialCommunityIcons
-                  name={senhaVisivel ? "eye-off" : "eye"}
-                  size={20}
-                  color="#F5F5F5"
-                />
+
+          <View style={styles.formContainer}>
+            <View style={styles.inputGroup}>
+              <Feather name="user" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+              <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Nome Completo" placeholderTextColor={PALETTE.CinzaClaro} />
+            </View>
+            <View style={styles.inputGroup}>
+              <MaterialCommunityIcons name="card-account-details-outline" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+              <TextInput style={styles.input} value={cnpj} onChangeText={(text) => setCnpj(formatCNPJ(text))} placeholder="CNPJ" placeholderTextColor={PALETTE.CinzaClaro} maxLength={18} keyboardType="numeric" />
+            </View>
+            <View style={styles.inputGroup}>
+              <Feather name="mail" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+              <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="E-mail" placeholderTextColor={PALETTE.CinzaClaro} keyboardType="email-address" autoCapitalize="none" />
+            </View>
+            <View style={styles.inputGroup}>
+              <Feather name="phone" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+              <TextInput style={styles.input} value={telefone} onChangeText={setTelefone} placeholder="Telefone" placeholderTextColor={PALETTE.CinzaClaro} keyboardType="phone-pad" maxLength={15} />
+            </View>
+            <View style={styles.inputGroup}>
+              <Feather name="lock" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+              <TextInput style={styles.input} value={senha} onChangeText={setSenha} secureTextEntry={!senhaVisivel} placeholder="Senha (mínimo 6 caracteres)" placeholderTextColor={PALETTE.CinzaClaro} />
+              <TouchableOpacity onPress={() => setSenhaVisivel(!senhaVisivel)} style={styles.iconButton}>
+                <MaterialCommunityIcons name={senhaVisivel ? "eye-off" : "eye"} size={20} color={PALETTE.Branco} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.label}>CONFIRMAR SENHA:</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.input}
-                value={confirmarSenha}
-                onChangeText={setConfirmarSenha}
-                secureTextEntry={!confirmarSenhaVisivel}
-                placeholder="Confirme sua senha"
-                placeholderTextColor="#ccc"
-              />
-              <TouchableOpacity
-                onPress={() => setConfirmarSenhaVisivel(!confirmarSenhaVisivel)}
-                style={styles.icon}
-              >
-                <MaterialCommunityIcons
-                  name={confirmarSenhaVisivel ? "eye-off" : "eye"}
-                  size={20}
-                  color="#F5F5F5"
-                />
+            <View style={styles.inputGroup}>
+              <Feather name="lock" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+              <TextInput style={styles.input} value={confirmarSenha} onChangeText={setConfirmarSenha} secureTextEntry={!confirmarSenhaVisivel} placeholder="Confirmar Senha" placeholderTextColor={PALETTE.CinzaClaro} />
+              <TouchableOpacity onPress={() => setConfirmarSenhaVisivel(!confirmarSenhaVisivel)} style={styles.iconButton}>
+                <MaterialCommunityIcons name={confirmarSenhaVisivel ? "eye-off" : "eye"} size={20} color={PALETTE.Branco} />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleCadastro}
-              disabled={loading}
-            >
+            <TouchableOpacity style={styles.button} onPress={handleCadastro} disabled={loading}>
               {loading ? (
-                <ActivityIndicator color="#F5F5F5" />
+                <ActivityIndicator color={PALETTE.Branco} />
               ) : (
                 <Text style={styles.buttonText}>CRIAR CONTA</Text>
               )}
             </TouchableOpacity>
           </View>
-          <View style={styles.recoverContainer}>
-            <Text style={styles.recoverText}>JÁ POSSUI UMA CONTA?</Text>
-            <TouchableOpacity
-              style={styles.recoverButton}
-              onPress={() => router.push("/screens/login")}
-            >
-              <Text style={styles.recoverButtonText}>FAZER LOGIN</Text>
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center" },
+  container: { flex: 1 },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
   header: {
-    width: "100%",
-    paddingVertical: 20,
-    paddingTop: 50,
     alignItems: "center",
-    backgroundColor: "#2A4D69",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    gap: 10,
+    alignSelf: "center",
+    marginBottom: 20,
   },
   title: {
-    fontSize: 50,
-    fontFamily: "BebasNeue",
-    color: "#F5F5F5",
+    fontSize: 60,
+    fontFamily: "BebasNeue_400Regular",
+    color: PALETTE.Branco,
     letterSpacing: 1.5,
   },
-  subtitle: {
-    fontSize: 50,
-    fontFamily: "BebasNeue",
-    color: "#F5F5F5",
-    marginTop: 20,
-  },
-  inputContainer: {
-    width: "90%",
-    backgroundColor: "rgba(245, 245, 245, 0.09)",
-    borderRadius: 10,
+  create: { color: PALETTE.Branco, fontSize: 25, fontFamily: "BebasNeue_400Regular" },
+  formContainer: {
+    width: '100%',
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
     padding: 20,
-    marginTop: 20,
+    borderRadius: 16,
   },
-  label: {
-    fontSize: 25,
-    fontFamily: "BebasNeue",
-    color: "#F5F5F5",
-    marginBottom: 5,
-  },
-  input: {
-    backgroundColor: "rgba(42, 77, 105, 0.35)",
-    borderRadius: 5,
-    padding: 10,
-    color: "#F5F5F5",
-    fontSize: 16, 
-    marginBottom: 10,
-    width: "100%",
-    fontFamily: "Montserrat_400Regular", 
-  },
-  passwordContainer: {
+  inputGroup: {
+    marginBottom: 15,
     flexDirection: "row",
     alignItems: "center",
-    position: "relative",
-    width: "100%",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
   },
-  icon: { position: "absolute", right: 10, top: 10 },
+  icon: { paddingHorizontal: 15 },
+  iconButton: { paddingRight: 15 },
+  input: {
+    flex: 1,
+    paddingVertical: 15,
+    color: PALETTE.Branco,
+    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+  },
   button: {
-    backgroundColor: "#5D9B9B",
-    padding: 10,
-    borderRadius: 60,
-    width: "60%",
+    backgroundColor: PALETTE.VerdeAgua,
+    borderRadius: 30,
+    padding: 15,
     alignItems: "center",
-    alignSelf: "center",
+    justifyContent: "center",
     marginTop: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 4 },
   },
-  buttonText: { fontSize: 22, fontFamily: "BebasNeue", color: "#F5F5F5" },
-  recoverContainer: { alignItems: "center", marginTop: 30 },
-  recoverText: { fontSize: 18, fontFamily: "BebasNeue", color: "#F5F5F5" },
-  recoverButton: {
-    backgroundColor: "transparent",
-    padding: 10,
-    borderRadius: 60,
-    width: "60%",
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 50,
-    borderWidth: 2,
-    borderColor: "#5D9B9B",
+  buttonText: {
+    color: PALETTE.Branco,
+    fontSize: 20,
+    fontFamily: "BebasNeue_400Regular",
   },
-  recoverButtonText: {
-    fontSize: 22,
-    fontFamily: "BebasNeue",
-    color: "#F5F5F5",
-  }
 });
 
 export default CadastroPage;

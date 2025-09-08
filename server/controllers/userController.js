@@ -41,13 +41,11 @@ exports.loginUser = async (req, res) => {
         return res.status(400).json({ error: 'Identificador (CNPJ ou E-mail) e senha são obrigatórios.' });
     }
     try {
-        // CORREÇÃO APLICADA AQUI
-        // Limpa o CNPJ de qualquer formatação, mantendo o e-mail intacto.
-        const loginIdentificador = identificador.includes('@') ? identificador : identificador.replace(/\D/g, '');
+        const loginIdentificador = identificador.includes('@') ? identificador : identificador.replace(/[^\d]/g, '');
 
         const [rows] = await db.query(
             'SELECT * FROM usuarios WHERE cnpj = ? OR email = ?',
-            [loginIdentificador, loginIdentificador]
+            [loginIdentificador, identificador] 
         );
 
         if (rows.length === 0) {
@@ -152,9 +150,8 @@ exports.updateUserProfile = async (req, res) => {
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Usuário não encontrado.' });
         }
-        const user = rows[0]; // <-- Defina a variável user aqui
+        const user = rows[0];
 
-        // Monte o array de campos a serem atualizados
         const campos = [];
         const valores = [];
 

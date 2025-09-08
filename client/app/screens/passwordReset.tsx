@@ -11,12 +11,20 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Feather, AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
-import * as SplashScreen from "expo-splash-screen";
+import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import { useRouter } from "expo-router";
-import { apiFetch } from "../services/api"; 
+import { apiFetch } from "../services/api";
+
+const PALETTE = {
+  LaranjaPrincipal: "#F5A623",
+  VerdeAgua: "#5D9B9B",
+  AzulEscuro: "#2A4D69",
+  Branco: "#F5F5F5",
+  CinzaClaro: "#ccc",
+};
 
 const RecoveryPage: React.FC = () => {
   const router = useRouter();
@@ -26,27 +34,10 @@ const RecoveryPage: React.FC = () => {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
-  const [step, setStep] = useState(1); // 1 para pedir email, 2 para inserir código e nova senha
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
-
-  useEffect(() => {
-    async function prepare() {
-      await SplashScreen.preventAutoHideAsync();
-    }
-    prepare();
-  }, []);
-
-  useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) {
-    return null;
-  }
+  const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
   const handleRequestCode = async () => {
     if (!email) {
@@ -59,8 +50,8 @@ const RecoveryPage: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({ email }),
       });
-      Alert.alert("Sucesso", "Um e-mail com o código de recuperação foi enviado. Verifique o Sapam.");
-      setStep(2); 
+      Alert.alert("Sucesso", "Um e-mail com o código de recuperação foi enviado. Verifique sua caixa de entrada e spam.");
+      setStep(2);
     } catch (error: any) {
       Alert.alert("Erro", error.message || "Não foi possível enviar o e-mail de recuperação.");
     } finally {
@@ -69,19 +60,16 @@ const RecoveryPage: React.FC = () => {
   };
 
   const handleRecovery = async () => {
+    if (!codigo || !senha || !confirmarSenha) {
+        Alert.alert("Erro", "Preencha todos os campos.");
+        return;
+    }
     if (senha !== confirmarSenha) {
-      Alert.alert(
-        "Erro: Senhas não coincidem",
-        "As senhas digitadas devem ser iguais."
-      );
+      Alert.alert("Erro", "As senhas não coincidem.");
       return;
     }
-
-    if (codigo.length === 0) {
-      Alert.alert(
-        "Erro: Código inválido",
-        "Digite o código recebido por email."
-      );
+    if (senha.length < 6) {
+      Alert.alert("Erro", "A nova senha deve ter no mínimo 6 caracteres.");
       return;
     }
 
@@ -92,174 +80,142 @@ const RecoveryPage: React.FC = () => {
         body: JSON.stringify({ email, token: codigo, newPassword: senha }),
       });
       Alert.alert("Sucesso", "Sua senha foi redefinida com sucesso!");
-      router.push("/screens/login"); 
+      router.replace("/screens/login");
     } catch (error: any) {
-      Alert.alert("Erro", error.message || "Não foi possível redefinir a senha.");
+      Alert.alert("Erro", error.message || "Não foi possível redefinir a senha. O código pode ser inválido ou ter expirado.");
     } finally {
       setLoading(false);
     }
   };
 
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#2A4D69" }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-    >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <LinearGradient
-          colors={["#5D9B9B", "#2A4D69"]}
-          style={styles.container}
-        >
+    <LinearGradient colors={[PALETTE.AzulEscuro, PALETTE.VerdeAgua]} style={styles.container}>
+      <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.header}>
-            <Text style={styles.title}>BIZMANAGER</Text>
+              <AntDesign name="arrowleft" size={30} color={PALETTE.Branco} onPress={() => router.back()} />
+              <Feather name="unlock" size={30} color={PALETTE.Branco} />
+              <Text style={styles.title}>Recuperar Conta</Text>
           </View>
-          <Text style={styles.subtitle}>RECUPERAR CONTA</Text>
 
-          {step === 1 ? (
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>EMAIL:</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Digite seu email"
-                placeholderTextColor="#ccc"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <TouchableOpacity style={styles.button} onPress={handleRequestCode} disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>ENVIAR CÓDIGO</Text>}
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>CÓDIGO DE VERIFICAÇÃO:</Text>
-              <TextInput
-                style={styles.input}
-                value={codigo}
-                onChangeText={setCodigo}
-                placeholder="Digite o código recebido por email"
-                placeholderTextColor="#ccc"
-              />
-              <Text style={styles.label}>NOVA SENHA:</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={styles.input}
-                  value={senha}
-                  onChangeText={setSenha}
-                  secureTextEntry={!passwordVisible}
-                  placeholder="Digite sua nova senha"
-                  placeholderTextColor="#ccc"
-                />
-                <TouchableOpacity
-                  onPress={() => setPasswordVisible(!passwordVisible)}
-                  style={styles.icon}
-                >
-                  <MaterialCommunityIcons
-                    name={passwordVisible ? "eye-off" : "eye"}
-                    size={20}
-                    color="#F5F5F5"
-                  />
+          <View style={styles.formContainer}>
+            {step === 1 ? (
+              <>
+                <Text style={styles.instructions}>
+                  Insira seu e-mail para receber um código de verificação.
+                </Text>
+                <View style={styles.inputGroup}>
+                    <Feather name="mail" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                    <TextInput
+                        style={styles.input}
+                        value={email}
+                        onChangeText={setEmail}
+                        placeholder="Digite seu e-mail"
+                        placeholderTextColor={PALETTE.CinzaClaro}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                    />
+                </View>
+                <TouchableOpacity style={styles.button} onPress={handleRequestCode} disabled={loading}>
+                  {loading ? <ActivityIndicator color={PALETTE.Branco} /> : <Text style={styles.buttonText}>Enviar Código</Text>}
                 </TouchableOpacity>
-              </View>
-              <Text style={styles.label}>CONFIRMAR SENHA:</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={styles.input}
-                  value={confirmarSenha}
-                  onChangeText={setConfirmarSenha}
-                  secureTextEntry={!confirmPasswordVisible}
-                  placeholder="Confirme sua nova senha"
-                  placeholderTextColor="#ccc"
-                />
-                <TouchableOpacity
-                  onPress={() =>
-                    setConfirmPasswordVisible(!confirmPasswordVisible)
-                  }
-                  style={styles.icon}
-                >
-                  <MaterialCommunityIcons
-                    name={confirmPasswordVisible ? "eye-off" : "eye"}
-                    size={20}
-                    color="#F5F5F5"
-                  />
+              </>
+            ) : (
+              <>
+                <Text style={styles.instructions}>
+                  Verifique seu e-mail e insira o código e sua nova senha.
+                </Text>
+                <View style={styles.inputGroup}>
+                    <Feather name="hash" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                    <TextInput style={styles.input} value={codigo} onChangeText={setCodigo} placeholder="Código de verificação" placeholderTextColor={PALETTE.CinzaClaro} keyboardType="numeric"/>
+                </View>
+                <View style={styles.inputGroup}>
+                    <Feather name="lock" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                    <TextInput style={styles.input} value={senha} onChangeText={setSenha} secureTextEntry={!passwordVisible} placeholder="Nova Senha" placeholderTextColor={PALETTE.CinzaClaro} />
+                    <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)} style={styles.iconButton}>
+                        <MaterialCommunityIcons name={passwordVisible ? "eye-off" : "eye"} size={20} color={PALETTE.Branco} />
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.inputGroup}>
+                    <Feather name="lock" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                    <TextInput style={styles.input} value={confirmarSenha} onChangeText={setConfirmarSenha} secureTextEntry={!confirmPasswordVisible} placeholder="Confirmar Nova Senha" placeholderTextColor={PALETTE.CinzaClaro} />
+                     <TouchableOpacity onPress={() => setConfirmPasswordVisible(!confirmPasswordVisible)} style={styles.iconButton}>
+                        <MaterialCommunityIcons name={confirmPasswordVisible ? "eye-off" : "eye"} size={20} color={PALETTE.Branco} />
+                    </TouchableOpacity>
+                </View>
+                <TouchableOpacity style={styles.button} onPress={handleRecovery} disabled={loading}>
+                  {loading ? <ActivityIndicator color={PALETTE.Branco} /> : <Text style={styles.buttonText}>Redefinir Senha</Text>}
                 </TouchableOpacity>
-              </View>
-              <TouchableOpacity style={styles.button} onPress={handleRecovery} disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>REDEFINIR SENHA</Text>}
-              </TouchableOpacity>
-            </View>
-          )}
-
-        </LinearGradient>
-      </ScrollView>
-    </KeyboardAvoidingView>
+              </>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, alignItems: "center" },
-    header: {
-        width: "100%",
-        paddingVertical: 20,
-        paddingTop: 50,
-        alignItems: "center",
-        backgroundColor: "#2A4D69",
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-    },
-    title: { fontSize: 50, fontFamily: "BebasNeue", color: "#F5F5F5" },
-    subtitle: {
-        fontSize: 50,
-        fontFamily: "BebasNeue",
-        color: "#F5F5F5",
-        marginTop: 20,
-    },
-    inputContainer: {
-        width: "90%",
-        backgroundColor: "rgba(245, 245, 245, 0.09)",
-        borderRadius: 10,
-        padding: 20,
-        marginTop: 20,
-    },
-    label: {
-        fontSize: 25,
-        fontFamily: "BebasNeue",
-        color: "#F5F5F5",
-        marginBottom: 5,
-    },
-    input: {
-        backgroundColor: "rgba(42, 77, 105, 0.35)",
-        borderRadius: 5,
-        padding: 10,
-        color: "#F5F5F5",
-        fontSize: 20,
-        marginBottom: 10,
-        width: "100%",
-        fontFamily: "Montserrat_400Regular",
-    },
-    passwordContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        position: "relative",
-    },
-    icon: { position: "absolute", right: 10, bottom: 20 },
-    button: {
-        backgroundColor: "#5D9B9B",
-        padding: 10,
-        borderRadius: 60,
-        width: "60%",
-        alignItems: "center",
-        alignSelf: "center",
-        marginTop: 10,
-        shadowColor: "#000",
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        shadowOffset: { width: 0, height: 4 },
-    },
-    buttonText: { fontSize: 22, fontFamily: "BebasNeue", color: "#F5F5F5" },
+  container: { flex: 1 },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    alignSelf: "flex-start",
+    marginBottom: 20,
+  },
+  title: { color: PALETTE.Branco, fontSize: 25, fontFamily: "BebasNeue_400Regular" },
+  formContainer: {
+    width: '100%',
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    padding: 20,
+    borderRadius: 16,
+  },
+  instructions: {
+    color: PALETTE.CinzaClaro,
+    fontFamily: 'Montserrat_400Regular',
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 25,
+  },
+  inputGroup: {
+    marginBottom: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
+  },
+  icon: { paddingHorizontal: 15 },
+  iconButton: { paddingRight: 15 },
+  input: {
+    flex: 1,
+    paddingVertical: 15,
+    color: PALETTE.Branco,
+    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+  },
+  button: {
+    backgroundColor: PALETTE.VerdeAgua,
+    borderRadius: 30,
+    padding: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  buttonText: {
+    color: PALETTE.Branco,
+    fontSize: 20,
+    fontFamily: "BebasNeue_400Regular",
+  },
 });
 
 export default RecoveryPage;

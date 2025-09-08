@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     Alert,
     Animated,
+    TouchableOpacity,
 } from "react-native";
 import { MaterialCommunityIcons, AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -19,7 +20,6 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { getTransactionsByUserId } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// --- Paleta de Cores ---
 const PALETTE = {
     LaranjaPrincipal: "#F5A623",
     LaranjaSecundario: "#FFBC42",
@@ -28,8 +28,6 @@ const PALETTE = {
     Branco: "#F5F5F5",
     Cinza: "#8E8E8E",
 };
-
-// --- Interfaces ---
 interface Transaction {
     id: number;
     usuario_id: number;
@@ -40,7 +38,6 @@ interface Transaction {
     categoria: string;
 }
 
-// CORREÇÃO: Alinhado com a biblioteca, color é opcional
 interface ChartDataset extends Dataset {
     data: number[];
     color?: (opacity: number) => string;
@@ -71,13 +68,11 @@ interface TooltipData {
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [PALETTE.AzulEscuro, PALETTE.VerdeAgua] as const;
 
-// --- Dados Iniciais ---
 const initialChartData: ChartData = {
     labels: [],
     datasets: [{ data: [], color: () => PALETTE.Branco }],
 };
 
-// --- Funções de Formatação ---
 const formatYAxisLabel = (value: string): string => {
     const numValue = Number(value);
     if (Math.abs(numValue) >= 1000000)
@@ -117,7 +112,6 @@ const ChartsScreen = () => {
     const processDataForCharts = (data: Transaction[]) => {
         const today = new Date();
 
-        // Fluxo de Caixa (Últimos 7 dias)
         const last7DaysLabels: string[] = [];
         const last7DaysValues = Array(7).fill(0);
         for (let i = 6; i >= 0; i--) {
@@ -145,7 +139,6 @@ const ChartsScreen = () => {
             ],
         });
 
-        // Receitas vs Despesas (Últimos 6 meses)
         const last6MonthsLabels: string[] = [];
         const revenueData = Array(6).fill(0);
         const expenseData = Array(6).fill(0);
@@ -171,17 +164,16 @@ const ChartsScreen = () => {
                 {
                     data: revenueData,
                     strokeWidth: 3,
-                    color: (opacity = 1) => `rgba(245, 245, 245, ${opacity})`,
-                }, // Branco
+                    color: (opacity = 1) => `rgba(93, 155, 155, ${opacity})`,
+                },
                 {
                     data: expenseData,
                     strokeWidth: 3,
-                    color: (opacity = 1) => `rgba(255, 188, 66, ${opacity})`,
-                }, // Laranja Secundário
+                    color: (opacity = 1) => `rgba(255, 188, 66, ${opacity})`, 
+                },
             ],
         });
 
-        // Distribuição de Despesas (Mês Atual)
         const currentMonth = today.getMonth();
         const currentYear = today.getFullYear();
         const monthlyExpenses = data.filter(
@@ -207,7 +199,6 @@ const ChartsScreen = () => {
         if (totalMonthlyExpense > 0) {
             for (const category in expenseByCategory) {
                 if (expenseByCategory[category] / totalMonthlyExpense < 0.04) {
-                    // Limite de 4%
                     othersValue += expenseByCategory[category];
                 } else {
                     processedCategories[category] = expenseByCategory[category];
@@ -221,9 +212,9 @@ const ChartsScreen = () => {
         const pieColors = [
             PALETTE.LaranjaPrincipal,
             PALETTE.LaranjaSecundario,
-            PALETTE.Branco,
-            PALETTE.Cinza,
             PALETTE.VerdeAgua,
+            PALETTE.AzulEscuro,
+            PALETTE.Branco,
         ];
         const categoryData = Object.keys(processedCategories).map((key, index) => ({
             name: key,
@@ -268,7 +259,7 @@ const ChartsScreen = () => {
         if (!loading && transactions.length > 0) {
             chartOpacity.setValue(0);
             chartPosition.setValue(20);
-            Animated.parallel([
+            Animated.stagger(100, [
                 Animated.timing(chartOpacity, {
                     toValue: 1,
                     duration: 700,
@@ -283,7 +274,6 @@ const ChartsScreen = () => {
         }
     }, [loading, transactions]);
 
-    // CORREÇÃO: Tipagem do parâmetro 'data' alinhada com a biblioteca
     const handleDataPointClick = (data: {
         value: number;
         x: number;
@@ -320,12 +310,13 @@ const ChartsScreen = () => {
                 showsHorizontalScrollIndicator={false}
             >
                 <View style={styles.sectionHeader}>
-                    <AntDesign
-                        name="arrowleft"
-                        size={30}
-                        color={PALETTE.Branco}
-                        onPress={() => router.back()}
-                    />
+                    <TouchableOpacity onPress={() => router.back()}>
+                        <AntDesign
+                            name="arrowleft"
+                            size={30}
+                            color={PALETTE.Branco}
+                        />
+                    </TouchableOpacity>
                     <MaterialCommunityIcons name="finance" size={30} color="#fff" />
                     <Text style={styles.title}>Gráficos Financeiros</Text>
                 </View>
@@ -342,6 +333,31 @@ const ChartsScreen = () => {
                     >
                         <View style={styles.chartContainer}>
                             <Text style={styles.chartTitle}>
+                                Receitas vs Despesas (últimos 6 meses)
+                            </Text>
+                            <LineChart
+                                data={monthlyComparison}
+                                width={screenWidth * 0.85}
+                                height={230}
+                                chartConfig={chartConfig}
+                                fromZero
+                                style={styles.chart}
+                                formatYLabel={formatYAxisLabel}
+                                onDataPointClick={handleDataPointClick}
+                                withShadow
+                            />
+                            {tooltip.visible && tooltip.datasetIndex !== undefined && (
+                                <View
+                                    style={[styles.tooltip, { left: tooltip.x, top: tooltip.y }]}
+                                >
+                                    <Text style={styles.tooltipText}>
+                                        {formatCurrencyBRL(tooltip.value)}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                        <View style={styles.chartContainer}>
+                            <Text style={styles.chartTitle}>
                                 Fluxo de Caixa (últimos 7 dias)
                             </Text>
                             <LineChart
@@ -355,35 +371,6 @@ const ChartsScreen = () => {
                                 onDataPointClick={handleDataPointClick}
                             />
                             {tooltip.visible && tooltip.datasetIndex === undefined && (
-                                <View
-                                    style={[styles.tooltip, { left: tooltip.x, top: tooltip.y }]}
-                                >
-                                    <Text style={styles.tooltipText}>
-                                        {formatCurrencyBRL(tooltip.value)}
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-                        <View style={styles.chartContainer}>
-                            <Text style={styles.chartTitle}>
-                                Receitas vs Despesas (últimos 6 meses)
-                            </Text>
-                            <LineChart
-                                data={monthlyComparison}
-                                width={screenWidth * 0.85}
-                                height={230}
-                                chartConfig={chartConfig}
-                                fromZero
-                                style={styles.chart}
-                                formatYLabel={formatYAxisLabel}
-                                onDataPointClick={handleDataPointClick}
-                                // CORREÇÃO: getDotColor movido para uma prop do componente e com tipagem explícita
-                                getDotColor={(dataPoint: number, dataPointIndex: number) => {
-                                    // A lógica aqui pode ser simplificada pois a cor do ponto herda da linha
-                                    return PALETTE.AzulEscuro;
-                                }}
-                            />
-                            {tooltip.visible && tooltip.datasetIndex !== undefined && (
                                 <View
                                     style={[styles.tooltip, { left: tooltip.x, top: tooltip.y }]}
                                 >
@@ -421,18 +408,17 @@ const ChartsScreen = () => {
     );
 };
 
-// CORREÇÃO: Removido o getDotColor da configuração principal
 const chartConfig: AbstractChartConfig = {
     backgroundGradientFrom: PALETTE.AzulEscuro,
     backgroundGradientTo: PALETTE.VerdeAgua,
-    backgroundGradientFromOpacity: 0,
-    backgroundGradientToOpacity: 0,
+    backgroundGradientFromOpacity: 0.2,
+    backgroundGradientToOpacity: 0.2,
     fillShadowGradientFrom: PALETTE.VerdeAgua,
     fillShadowGradientFromOpacity: 0.2,
     fillShadowGradientTo: PALETTE.AzulEscuro,
     fillShadowGradientToOpacity: 0.05,
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(245, 245, 245, ${opacity})`,
+    color: (opacity = 1) => `rgba(93, 155, 155, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(245, 245, 245, ${opacity})`,
     propsForDots: { r: "5" },
     propsForBackgroundLines: { stroke: "rgba(255, 255, 255, 0.15)" },
@@ -457,6 +443,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
         alignSelf: "flex-start",
         paddingHorizontal: 20,
+        gap: 10,
     },
     title: {
         fontSize: 30,
@@ -471,10 +458,18 @@ const styles = StyleSheet.create({
     chartContainer: {
         width: screenWidth * 0.9,
         marginTop: 30,
-        backgroundColor: "rgba(255,255,255,0.1)",
+        backgroundColor: "rgba(0,0,0,0.2)",
         borderRadius: 16,
         paddingVertical: 15,
         alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.30,
+        shadowRadius: 4.65,
+        elevation: 8,
     },
     chartTitle: {
         fontFamily: "BebasNeue",
@@ -491,7 +486,7 @@ const styles = StyleSheet.create({
         marginTop: 50,
         padding: 20,
     },
-    noDataText: { color: PALETTE.Branco, fontSize: 18, textAlign: "center" },
+    noDataText: { color: PALETTE.Branco, fontSize: 18, textAlign: "center", fontFamily: 'BebasNeue' },
     tooltip: {
         position: "absolute",
         backgroundColor: PALETTE.AzulEscuro,

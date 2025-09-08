@@ -1,4 +1,3 @@
-// client/app/screens/addNota.tsx
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform, KeyboardAvoidingView } from "react-native";
 import { MaterialIcons, AntDesign } from "@expo/vector-icons";
@@ -11,7 +10,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Header, Nav } from "../components/utils";
 import { getUserProfile, getClients } from "../services/api"; 
 
-// Interfaces para tipagem dos dados
 interface Endereco {
     logradouro: string;
     numero: string;
@@ -47,9 +45,9 @@ interface Servico {
 interface Cliente {
     id: number;
     nome: string;
-    cnpj?: string; // Adicionado
+    cnpj?: string; 
     email?: string;
-    endereco?: string; // Simplificado por enquanto
+    endereco?: string; 
 }
 
 
@@ -57,7 +55,6 @@ const AddNotaPage: React.FC = () => {
     const router = useRouter();
     const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
-    // Estado para o formulário
     const [data_emissao, setDataEmissao] = useState(new Date().toISOString().split('T')[0]);
     const [prestador, setPrestador] = useState<Prestador>({ cnpj: '', inscricao_municipal: '', codigo_municipio: '' });
     const [tomador, setTomador] = useState<Tomador>({
@@ -83,15 +80,13 @@ const AddNotaPage: React.FC = () => {
                 if (!usuarioIdString) throw new Error("ID do usuário não encontrado.");
                 const usuario_id = parseInt(usuarioIdString, 10);
 
-                // Buscar perfil do usuário para dados do prestador
                 const userProfile = await getUserProfile(usuario_id);
                 setPrestador({
                     cnpj: userProfile.cnpj || '',
-                    inscricao_municipal: '12345', // Placeholder
-                    codigo_municipio: '3516200' // Placeholder
+                    inscricao_municipal: '12345',
+                    codigo_municipio: '3516200',
                 });
 
-                // Buscar clientes
                 const clientList = await getClients(usuario_id);
                 setClientes(clientList);
 
@@ -102,7 +97,6 @@ const AddNotaPage: React.FC = () => {
         fetchData();
     }, []);
 
-    // Atualiza os dados do tomador quando um cliente é selecionado
     useEffect(() => {
         if (selectedClientId) {
             const clienteSelecionado = clientes.find(c => c.id === selectedClientId);
@@ -112,7 +106,6 @@ const AddNotaPage: React.FC = () => {
                     cnpj: clienteSelecionado.cnpj || '',
                     razao_social: clienteSelecionado.nome,
                     email: clienteSelecionado.email || '',
-                    // Aqui você pode expandir para preencher o endereço completo se estiver no objeto cliente
                     endereco: {
                         ...prev.endereco,
                         logradouro: clienteSelecionado.endereco || ''
@@ -129,7 +122,6 @@ const AddNotaPage: React.FC = () => {
             
             const notaFiscalData = { data_emissao, prestador, tomador, servico };
             
-            // await createInvoice(notaFiscalData);
             
             Alert.alert("Sucesso", "Nota Fiscal salva com sucesso!");
             router.push("/screens/notaFiscal");
@@ -165,8 +157,7 @@ const AddNotaPage: React.FC = () => {
                                 ))}
                             </Picker>
                         </View>
-                        
-                        {/* Dados do Tomador */}
+
                         <Text style={styles.sectionTitle}>Dados do Tomador</Text>
                         <TextInput style={styles.input} value={tomador.razao_social} onChangeText={text => setTomador(t => ({ ...t, razao_social: text }))} placeholder="Razão Social" />
                         <TextInput style={styles.input} value={tomador.cnpj} onChangeText={text => setTomador(t => ({ ...t, cnpj: text }))} placeholder="CNPJ do Tomador" keyboardType="numeric" />
@@ -174,7 +165,7 @@ const AddNotaPage: React.FC = () => {
                         <TextInput style={styles.input} value={tomador.endereco.logradouro} onChangeText={text => setTomador(t => ({ ...t, endereco: { ...t.endereco, logradouro: text } }))} placeholder="Logradouro" />
                         <TextInput style={styles.input} value={tomador.endereco.numero} onChangeText={text => setTomador(t => ({ ...t, endereco: { ...t.endereco, numero: text } }))} placeholder="Número" />
 
-                        {/* Dados do Serviço */}
+
                         <Text style={styles.sectionTitle}>Dados do Serviço</Text>
                         <TextInput style={styles.input} value={String(servico.valor_servicos)} onChangeText={text => setServico(s => ({ ...s, valor_servicos: parseFloat(text) || 0 }))} placeholder="Valor dos Serviços" keyboardType="numeric" />
                         <TextInput style={[styles.input, {height: 80}]} value={servico.discriminacao} onChangeText={text => setServico(s => ({ ...s, discriminacao: text }))} placeholder="Discriminação do Serviço" multiline />

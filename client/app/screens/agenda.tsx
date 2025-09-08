@@ -15,7 +15,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Nav, addButton, Header } from '../components/utils';
 import { getScheduledServices, deleteScheduledService } from '../services/api';
 
-// Interface para tipar os eventos, com ID como número
 interface Evento {
   id: number;
   titulo: string;
@@ -31,7 +30,6 @@ const AgendaScreen = () => {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Função para buscar eventos
   const fetchEventos = useCallback(async () => {
     setLoading(true);
     try {
@@ -50,12 +48,10 @@ const AgendaScreen = () => {
     }, [fetchEventos])
   );
 
-  // Navega para a tela de edição
   const handleEdit = (eventoId: number) => {
-    router.push({ pathname: "/screens/detalhesEventos", params: { id: eventoId, edit: "true" } });
+    router.push(`/screens/detalhesEventos?id=${eventoId}&edit=true`);
   };
 
-  // Exibe um alerta de confirmação antes de excluir
   const handleDelete = (eventoId: number) => {
     Alert.alert(
       'Confirmar Exclusão',
@@ -107,7 +103,7 @@ const AgendaScreen = () => {
     };
 
     return (
-        <TouchableOpacity onPress={() => router.push({ pathname: "/screens/detalhesEventos", params: { id: item.id } })} style={styles.eventoContainer}>
+          <TouchableOpacity onPress={() => router.push(`/screens/detalhesEventos?id=${item.id}`)} style={styles.eventoContainer}>
             <View style={[styles.statusIndicator, getStatusStyle(item.status)]} />
             <View style={styles.eventoInfo}>
                 <View style={styles.eventoHeader}>
@@ -180,15 +176,15 @@ const styles = StyleSheet.create({
         marginBottom: 15,
         flexDirection: 'row',
         alignItems: 'center',
-        overflow: 'hidden', // Garante que a barra de status não saia do container
+        overflow: 'hidden', 
     },
     statusIndicator: {
         width: 8,
         height: '100%',
     },
-    statusAgendado: { backgroundColor: '#3498db' }, // Azul
-    statusConcluido: { backgroundColor: '#2ecc71' }, // Verde
-    statusCancelado: { backgroundColor: '#e74c3c' }, // Vermelho
+    statusAgendado: { backgroundColor: '#3498db' }, 
+    statusConcluido: { backgroundColor: '#2ecc71' }, 
+    statusCancelado: { backgroundColor: '#e74c3c' }, 
     eventoInfo: {
         flex: 1,
         padding: 15,
@@ -206,7 +202,7 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: 10,
     },
-    eventoHorario: { color: "#f5f5f5", fontSize: 18, fontFamily: "BebasNeue" },
+    eventoHorario: { color: "#f5f5f5", fontSize: 25, fontFamily: "BebasNeue" },
     eventoData: { color: "#ccc", fontSize: 16, marginBottom: 5 },
     eventoCliente: {
         color: "#ddd",

@@ -45,4 +45,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
+
+    console.log('Acesse a documentação da API em http://localhost:' + PORT + '/api-docs');
 });

@@ -50,7 +50,7 @@ const InvoiceScreen = () => {
 
         {addButton({ activeRoute: "/screens/addNota" })}
 
-        <Nav style={{ marginTop: 125 }} />
+        <Nav style={{ marginTop: 145 }} />
       </View>
     </LinearGradient>
   );

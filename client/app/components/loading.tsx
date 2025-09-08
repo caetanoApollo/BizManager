@@ -3,11 +3,10 @@ import { View, Animated, Easing, StyleSheet, Text, Dimensions } from "react-nati
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
-const BAR_WIDTH = width * 0.05; // Largura de cada barra
-const BAR_HEIGHT = width * 0.3; // Altura máxima das barras
-const NUM_BARS = 4; // Número de barras
+const BAR_WIDTH = width * 0.05; 
+const BAR_HEIGHT = width * 0.3; 
+const NUM_BARS = 4;
 
-// Cores das barras, utilizando a paleta do app:
 const barColors = ["#F5A623", "#FFBC42", "#5D9B9B", "#2A4D69"];
 
 const LoadingScreen = ({ onFinish }: { onFinish: () => void }) => {
@@ -15,7 +14,6 @@ const LoadingScreen = ({ onFinish }: { onFinish: () => void }) => {
   const fadeValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Anima cada barra com durações e delays distintos para um efeito orgânico
     bars.forEach((bar, index) => {  
       Animated.loop(
         Animated.sequence([
@@ -36,7 +34,6 @@ const LoadingScreen = ({ onFinish }: { onFinish: () => void }) => {
       ).start();
     });
 
-    // Fade-in para os textos
     Animated.timing(fadeValue, {
       toValue: 1,
       duration: 1500,
@@ -44,7 +41,6 @@ const LoadingScreen = ({ onFinish }: { onFinish: () => void }) => {
       useNativeDriver: true,
     }).start();
 
-    // Finaliza o carregamento após 4 segundos
     const timeout = setTimeout(onFinish, 4000);
     return () => clearTimeout(timeout);
   }, []);

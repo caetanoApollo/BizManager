@@ -1,5 +1,3 @@
-// Arquivo: /screens/transacoesDetalhes.tsx
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,7 +7,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, AntDesign, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Header } from '../components/utils';
 
-// --- Paleta de Cores (Consistente com addFinan) ---
 const PALETTE = {
     LaranjaPrincipal: "#F5A623",
     VerdeAgua: "#5D9B9B",
@@ -38,7 +35,6 @@ const TransacoesDetalhesScreen = () => {
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
 
-    // Estados para os campos do formulário
     const [titulo, setTitulo] = useState('');
     const [categoria, setCategoria] = useState('');
     const [tipo, setTipo] = useState<'Entrada' | 'Saída' | ''>('');
@@ -72,7 +68,6 @@ const TransacoesDetalhesScreen = () => {
                 const fetchedData = await getTransactionById(transactionId);
                 setTransaction(fetchedData);
 
-                // Popula os estados do formulário
                 setTitulo(fetchedData.titulo);
                 setCategoria(fetchedData.categoria || '');
                 setTipo(fetchedData.tipo);
@@ -137,7 +132,7 @@ const TransacoesDetalhesScreen = () => {
 
     const handleCancelEdit = () => {
         if (transaction) {
-            fetchTransaction(); // Recarrega os dados originais
+            fetchTransaction();
         }
         setIsEditing(false);
     };
@@ -172,7 +167,6 @@ const TransacoesDetalhesScreen = () => {
                     </View>
 
                     <View style={styles.formContainer}>
-                        {/* Seção O Quê? */}
                         <Text style={styles.sectionTitle}>O Lançamento</Text>
                         <View style={styles.inputGroup}>
                             <Feather name="edit-3" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
@@ -199,7 +193,6 @@ const TransacoesDetalhesScreen = () => {
                             )}
                         </View>
 
-                        {/* Seção Detalhes */}
                         <Text style={styles.sectionTitle}>Detalhes Financeiros</Text>
                         <View style={styles.row}>
                             <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
@@ -218,7 +211,6 @@ const TransacoesDetalhesScreen = () => {
                             </View>
                         </View>
 
-                        {/* Seção Quando? */}
                         <Text style={styles.sectionTitle}>Quando?</Text>
                         <View style={styles.inputGroup}>
                             <Feather name="calendar" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
@@ -229,7 +221,6 @@ const TransacoesDetalhesScreen = () => {
                             )}
                         </View>
 
-                        {/* Botões de Ação */}
                         {isEditing ? (
                             <TouchableOpacity style={styles.button} onPress={handleUpdate} disabled={loading}>
                                 {loading ? <ActivityIndicator color={PALETTE.Branco} /> : (<><Feather name="check-circle" size={20} color={PALETTE.Branco} /><Text style={styles.buttonText}>Salvar Alterações</Text></>)}
@@ -308,7 +299,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontFamily: "Montserrat_400Regular",
     },
-    value: { // Estilo para texto em modo de visualização
+    value: { 
         flex: 1,
         paddingVertical: 15,
         paddingRight: 15,
@@ -333,7 +324,7 @@ const styles = StyleSheet.create({
         elevation: 8,
     },
     cancelButton: {
-        backgroundColor: '#e74c3c', // Vermelho
+        backgroundColor: '#e74c3c', 
         marginTop: 10,
     },
     buttonText: {

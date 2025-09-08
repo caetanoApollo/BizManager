@@ -16,13 +16,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons, AntDesign, Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Header } from "../components/utils";
-import { createTransaction, updateTransaction } from "../services/api";
+import { createTransaction, updateTransaction, getTransactionById } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// --- Paleta de Cores (Consistente com addEvento) ---
 const PALETTE = {
   LaranjaPrincipal: "#F5A623",
-  LaranjaSecundario: "#FFBC42",
   VerdeAgua: "#5D9B9B",
   AzulEscuro: "#2A4D69",
   Branco: "#F5F5F5",
@@ -40,26 +38,32 @@ const AddFinanScreen: React.FC = () => {
   const [data, setData] = useState("");
   const [valor, setValor] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isEditing); 
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Popula os campos se estiver editando
   useFocusEffect(
     useCallback(() => {
-      if (isEditing) {
-        setTitulo(params.titulo as string || '');
-        setCategoria(params.categoria as string || '');
-        setTipo(params.tipo as 'Entrada' | 'Saída' || '');
-        // Formata a data que vem da navegação (ex: YYYY-MM-DD) para DD/MM/AAAA
-        const dateFromParams = params.data as string;
-        if (dateFromParams) {
-          const [year, month, day] = dateFromParams.split('T')[0].split('-');
-          setData(`${day}/${month}/${year}`);
-        }
-        setValor(formatCurrency(params.valor as string || '0'));
-        setDescricao(params.descricao as string || '');
-      }
-    }, [params, isEditing])
+        const loadTransactionData = async () => {
+            if (isEditing) {
+                try {
+                    const transactionData = await getTransactionById(Number(params.id));
+                    setTitulo(transactionData.titulo || '');
+                    setCategoria(transactionData.categoria || '');
+                    setTipo(transactionData.tipo || '');
+                    const dateFromApi = new Date(transactionData.data);
+                    const formattedDate = `${String(dateFromApi.getUTCDate()).padStart(2, '0')}/${String(dateFromApi.getUTCMonth() + 1).padStart(2, '0')}/${dateFromApi.getUTCFullYear()}`;
+                    setData(formattedDate);
+                    setValor(formatCurrency(String(transactionData.valor) || '0'));
+                    setDescricao(transactionData.descricao || '');
+                } catch (error) {
+                    Alert.alert("Erro", "Não foi possível carregar os dados da transação.");
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+        loadTransactionData();
+    }, [params.id, isEditing])
   );
 
   const handleSalvar = async () => {
@@ -111,6 +115,11 @@ const AddFinanScreen: React.FC = () => {
       currency: 'BRL',
     }).format(number);
   };
+  
+  const handleValorChange = (text: string) => {
+    const formatted = formatCurrency(text);
+    setValor(formatted);
+  };
 
   const handleSelectType = (selectedType: 'Entrada' | 'Saída') => {
     setTipo(selectedType);
@@ -124,17 +133,15 @@ const AddFinanScreen: React.FC = () => {
       colors={[PALETTE.AzulEscuro, PALETTE.VerdeAgua]}
       style={styles.container}
     >
+      <Header />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.keyboardAvoidingContainer}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
         >
-          <Header />
-
           <View style={styles.header}>
             <AntDesign
               name="arrowleft"
@@ -145,168 +152,115 @@ const AddFinanScreen: React.FC = () => {
             <MaterialIcons name={isEditing ? "edit" : "add-card"} size={30} color={PALETTE.Branco} />
             <Text style={styles.title}>{pageTitle}</Text>
           </View>
-
-          <View style={styles.formContainer}>
-            {/* Seção O Quê? */}
-            <Text style={styles.sectionTitle}>O Lançamento</Text>
-            <View style={styles.inputGroup}>
-              <Feather
-                name="edit-3"
-                size={20}
-                color={PALETTE.CinzaClaro}
-                style={styles.icon}
-              />
-              <TextInput
-                style={styles.input}
-                value={titulo}
-                onChangeText={setTitulo}
-                placeholder="Título do Lançamento"
-                placeholderTextColor={PALETTE.CinzaClaro}
-              />
-            </View>
-            <View style={styles.inputGroup}>
-              <Feather
-                name="tag"
-                size={20}
-                color={PALETTE.CinzaClaro}
-                style={styles.icon}
-              />
-              <TextInput
-                style={styles.input}
-                value={categoria}
-                onChangeText={setCategoria}
-                placeholder="Categoria (opcional)"
-                placeholderTextColor={PALETTE.CinzaClaro}
-              />
-            </View>
-            <View style={[styles.inputGroup, styles.alignTop]}>
-              <Feather
-                name="file-text"
-                size={20}
-                color={PALETTE.CinzaClaro}
-                style={[styles.icon, { paddingTop: 12 }]}
-              />
-              <TextInput
-                style={[styles.input, styles.multilineInput]}
-                value={descricao}
-                onChangeText={setDescricao}
-                placeholder="Descrição (opcional)"
-                placeholderTextColor={PALETTE.CinzaClaro}
-                multiline
-              />
-            </View>
-
-            {/* Seção Detalhes */}
-            <Text style={styles.sectionTitle}>Detalhes Financeiros</Text>
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                <Feather
-                  name="dollar-sign"
-                  size={20}
-                  color={PALETTE.CinzaClaro}
-                  style={styles.icon}
-                />
+          
+          {loading ? (
+              <ActivityIndicator color={PALETTE.Branco} size="large" />
+          ) : (
+            <View style={styles.formContainer}>
+              <Text style={styles.sectionTitle}>O Lançamento</Text>
+              <View style={styles.inputGroup}>
+                <Feather name="edit-3" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
                 <TextInput
                   style={styles.input}
-                  value={valor}
-                  onChangeText={setValor}
-                  placeholder="R$ 0,00"
+                  value={titulo}
+                  onChangeText={setTitulo}
+                  placeholder="Título do Lançamento"
                   placeholderTextColor={PALETTE.CinzaClaro}
-                  keyboardType="numeric"
                 />
               </View>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <TouchableOpacity
-                  style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
-                  onPress={() => setModalVisible(true)}
-                >
-                  <Feather
-                    name={tipo === 'Entrada' ? 'arrow-up-circle' : tipo === 'Saída' ? 'arrow-down-circle' : 'help-circle'}
-                    size={20}
-                    color={PALETTE.CinzaClaro}
-                    style={styles.icon}
-                  />
-                  <Text
-                    style={[
-                      styles.input,
-                      styles.pickerText,
-                      !tipo && styles.placeholderText,
-                    ]}
-                  >
-                    {tipo || "Tipo"}
-                  </Text>
-                </TouchableOpacity>
+              <View style={styles.inputGroup}>
+                <Feather name="tag" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  value={categoria}
+                  onChangeText={setCategoria}
+                  placeholder="Categoria (opcional)"
+                  placeholderTextColor={PALETTE.CinzaClaro}
+                />
               </View>
-            </View>
+              <View style={[styles.inputGroup, styles.alignTop]}>
+                <Feather name="file-text" size={20} color={PALETTE.CinzaClaro} style={[styles.icon, { paddingTop: 12 }]} />
+                <TextInput
+                  style={[styles.input, styles.multilineInput]}
+                  value={descricao}
+                  onChangeText={setDescricao}
+                  placeholder="Descrição (opcional)"
+                  placeholderTextColor={PALETTE.CinzaClaro}
+                  multiline
+                />
+              </View>
 
-            {/* Seção Quando? */}
-            <Text style={styles.sectionTitle}>Quando?</Text>
-            <View style={styles.inputGroup}>
-              <Feather
-                name="calendar"
-                size={20}
-                color={PALETTE.CinzaClaro}
-                style={styles.icon}
-              />
-              <TextInput
-                style={styles.input}
-                value={data}
-                onChangeText={(text) => setData(formatDate(text))}
-                placeholder="DD/MM/AAAA"
-                placeholderTextColor={PALETTE.CinzaClaro}
-                keyboardType="numeric"
-                maxLength={10}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleSalvar}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={PALETTE.Branco} />
-              ) : (
-                <>
-                  <Feather
-                    name="check-circle"
-                    size={20}
-                    color={PALETTE.Branco}
+              <Text style={styles.sectionTitle}>Detalhes Financeiros</Text>
+              <View style={styles.row}>
+                <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                  <Feather name="dollar-sign" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                  <TextInput
+                    style={styles.input}
+                    value={valor}
+                    onChangeText={handleValorChange}
+                    placeholder="R$ 0,00"
+                    placeholderTextColor={PALETTE.CinzaClaro}
+                    keyboardType="numeric"
                   />
-                  <Text style={styles.buttonText}>Salvar Lançamento</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <TouchableOpacity
+                    style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+                    onPress={() => setModalVisible(true)}
+                  >
+                    <Feather
+                      name={tipo === 'Entrada' ? 'arrow-up-circle' : tipo === 'Saída' ? 'arrow-down-circle' : 'help-circle'}
+                      size={20}
+                      color={PALETTE.CinzaClaro}
+                      style={styles.icon}
+                    />
+                    <Text style={[styles.input, styles.pickerText, !tipo && styles.placeholderText]}>
+                      {tipo || "Tipo"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <Text style={styles.sectionTitle}>Quando?</Text>
+              <View style={styles.inputGroup}>
+                <Feather name="calendar" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  value={data}
+                  onChangeText={(text) => setData(formatDate(text))}
+                  placeholder="DD/MM/AAAA"
+                  placeholderTextColor={PALETTE.CinzaClaro}
+                  keyboardType="numeric"
+                  maxLength={10}
+                />
+              </View>
+
+              <TouchableOpacity style={styles.button} onPress={handleSalvar} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator color={PALETTE.Branco} />
+                ) : (
+                  <>
+                    <Feather name="check-circle" size={20} color={PALETTE.Branco} />
+                    <Text style={styles.buttonText}>Salvar Lançamento</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Modal de Seleção de Tipo */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
+      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Selecione um Tipo</Text>
-            <TouchableOpacity
-              style={styles.clientItem}
-              onPress={() => handleSelectType('Entrada')}
-            >
+            <TouchableOpacity style={styles.clientItem} onPress={() => handleSelectType('Entrada')}>
               <Text style={styles.clientItemText}>Entrada</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.clientItem}
-              onPress={() => handleSelectType('Saída')}
-            >
+            <TouchableOpacity style={styles.clientItem} onPress={() => handleSelectType('Saída')}>
               <Text style={styles.clientItemText}>Saída</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setModalVisible(false)}
-            >
+            <TouchableOpacity style={styles.modalCloseButton} onPress={() => setModalVisible(false)}>
               <Text style={styles.modalCloseButtonText}>Fechar</Text>
             </TouchableOpacity>
           </View>
@@ -318,14 +272,18 @@ const AddFinanScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContainer: { flexGrow: 1, paddingBottom: 4 },
+  keyboardAvoidingContainer: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContainer: { flexGrow: 1, paddingBottom: 40 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: 10,
-    alignSelf: "flex-start",
+    marginBottom: 15,
   },
   title: { color: PALETTE.Branco, fontSize: 25, fontFamily: "BebasNeue" },
   formContainer: {
@@ -384,7 +342,6 @@ const styles = StyleSheet.create({
   },
   pickerText: { paddingVertical: 15, paddingRight: 15, paddingLeft: 0 },
   placeholderText: { color: PALETTE.CinzaClaro },
-  // Estilos do Modal
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",

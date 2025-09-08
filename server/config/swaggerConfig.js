@@ -10,8 +10,8 @@ const options = {
         },
         servers: [
             {
-                url: 'http://localhost:3001/api', 
-                description: 'Servidor de Desenvolvimento',
+                url: 'http://172.20.91.39:3001/api',
+                description: 'Servidor do BizManager local',
             },
         ],
         components: {
@@ -143,10 +143,7 @@ const options = {
             }
         }
     },
-    apis: [
-        './server/routers/*.js',
-        './server/controllers/*.js' 
-    ],
+    apis: ['./routers/*.js'], 
 };
 
 const swaggerSpec = swaggerJsdoc(options);

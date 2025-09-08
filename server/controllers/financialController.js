@@ -1,7 +1,6 @@
 const db = require('../config/db');
 
 exports.createTransaction = async (req, res) => {
-    // Verificação de segurança adicionada
     if (!req.user || !req.user.id) {
         return res.status(401).json({ error: 'Usuário não autenticado.' });
     }
@@ -20,7 +19,6 @@ exports.createTransaction = async (req, res) => {
 };
 
 exports.getTransactionsByUserId = async (req, res) => {
-    // CORREÇÃO: Adicionada verificação para garantir que req.user exista
     if (!req.user || !req.user.id) {
         return res.status(401).json({ error: 'Usuário não autenticado.' });
     }
@@ -54,7 +52,6 @@ exports.getTransactionById = async (req, res) => {
 };
 
 exports.updateTransaction = async (req, res) => {
-    // Verificação de segurança adicionada
     if (!req.user || !req.user.id) {
         return res.status(401).json({ error: 'Usuário não autenticado.' });
     }
@@ -79,7 +76,6 @@ exports.updateTransaction = async (req, res) => {
 };
 
 exports.deleteTransaction = async (req, res) => {
-    // Verificação de segurança adicionada
     if (!req.user || !req.user.id) {
         return res.status(401).json({ error: 'Usuário não autenticado.' });
     }

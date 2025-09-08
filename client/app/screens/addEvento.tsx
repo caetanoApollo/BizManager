@@ -19,8 +19,8 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { Header } from "../components/utils";
 import { createScheduledService, getClients } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSafeAreaInsets } from "react-native-safe-area-context"; 
 
-// --- Paleta de Cores ---
 const PALETTE = {
     LaranjaPrincipal: "#F5A623",
     LaranjaSecundario: "#FFBC42",
@@ -30,7 +30,6 @@ const PALETTE = {
     CinzaClaro: "#ccc",
 };
 
-// Interface para tipar os clientes
 interface Cliente {
     id: number;
     nome: string;
@@ -38,6 +37,8 @@ interface Cliente {
 
 const NovoEventoScreen = () => {
     const router = useRouter();
+    const insets = useSafeAreaInsets(); 
+
     const [titulo, setTitulo] = useState("");
     const [data, setData] = useState("");
     const [horario, setHorario] = useState("");
@@ -67,7 +68,7 @@ const NovoEventoScreen = () => {
             };
 
             fetchClientes();
-            return () => { };
+            return () => {};
         }, [])
     );
 
@@ -121,18 +122,17 @@ const NovoEventoScreen = () => {
     return (
         <LinearGradient
             colors={[PALETTE.AzulEscuro, PALETTE.VerdeAgua]}
-            style={styles.container}
+            style={styles.fullScreenGradient}
         >
+            <Header />
             <KeyboardAvoidingView
-                style={{ flex: 1 }}
+                style={{ flex: 1, paddingTop: insets.top }} 
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
-                keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
             >
                 <ScrollView
                     contentContainerStyle={styles.scrollContainer}
                     keyboardShouldPersistTaps="handled"
                 >
-                    <Header />
 
                     <View style={styles.header}>
                         <AntDesign
@@ -146,7 +146,6 @@ const NovoEventoScreen = () => {
                     </View>
 
                     <View style={styles.formContainer}>
-                        {/* Seção O Quê? */}
                         <Text style={styles.sectionTitle}>O Quê?</Text>
                         <View style={styles.inputGroup}>
                             <Feather
@@ -180,7 +179,6 @@ const NovoEventoScreen = () => {
                             />
                         </View>
 
-                        {/* Seção Para Quem? */}
                         <Text style={styles.sectionTitle}>Para Quem?</Text>
                         <TouchableOpacity
                             style={styles.inputGroup}
@@ -212,7 +210,6 @@ const NovoEventoScreen = () => {
                             </Text>
                         </TouchableOpacity>
 
-                        {/* Seção Quando? */}
                         <Text style={styles.sectionTitle}>Quando?</Text>
                         <View style={styles.row}>
                             <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
@@ -273,7 +270,6 @@ const NovoEventoScreen = () => {
                 </ScrollView>
             </KeyboardAvoidingView>
 
-            {/* Modal de Seleção de Cliente */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -318,14 +314,23 @@ const NovoEventoScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    scrollContainer: { flexGrow: 1, paddingBottom: 50 },
+    fullScreenGradient: {
+        flex: 1,
+    },
+    safeAreaContainer: {
+        flex: 1,
+        backgroundColor: "transparent",
+    },
+    scrollContainer: {
+        paddingBottom: 50,
+        backgroundColor: "transparent",
+    },
     header: {
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
         padding: 20,
-        paddingTop: 10,
+        paddingTop: 1,
         alignSelf: "flex-start",
     },
     title: { color: PALETTE.Branco, fontSize: 25, fontFamily: "BebasNeue" },
@@ -351,7 +356,7 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255, 255, 255, 0.1)",
         borderRadius: 12,
     },
-    alignTop: { alignItems: "flex-start", },
+    alignTop: { alignItems: "flex-start" },
     icon: { paddingLeft: 15, paddingRight: 10 },
     input: {
         flex: 1,
@@ -392,7 +397,6 @@ const styles = StyleSheet.create({
         fontFamily: "Montserrat_400Regular",
         marginBottom: 20,
     },
-    // Estilos do Modal
     modalOverlay: {
         flex: 1,
         justifyContent: "flex-end",

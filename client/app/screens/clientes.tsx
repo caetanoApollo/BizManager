@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
     View,
     Text,
@@ -6,253 +6,227 @@ import {
     StyleSheet,
     TouchableOpacity,
     Alert,
+    ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { MaterialCommunityIcons, AntDesign, FontAwesome } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons, Feather, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
-import * as SplashScreen from "expo-splash-screen";
+import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import { useRouter, useFocusEffect } from "expo-router";
-import { Nav, addButton, Header } from "../components/utils";
+import { Nav, Header } from "../components/utils";
 import { getClients, deleteClient } from "../services/api";
+
+const PALETTE = {
+    AzulEscuro: "#2A4D69",
+    VerdeAgua: "#5D9B9B",
+    Branco: "#F5F5F5",
+    LaranjaPrincipal: "#F5A623",
+    VermelhoErro: "#e74c3c",
+    CinzaClaro: "rgba(255, 255, 255, 0.8)",
+    FundoCard: "rgba(255, 255, 255, 0.1)",
+};
 
 interface Client {
     id: number;
-    usuario_id: number;
     nome: string;
     email: string;
     telefone: string;
-    observacao: string;
-    data_cadastro: string;
 }
 
 const ClientsScreen: React.FC = () => {
     const router = useRouter();
     const [clients, setClients] = useState<Client[]>([]);
-    const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
+    const [loading, setLoading] = useState(true);
+    const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
     const fetchClients = useCallback(async () => {
+        setLoading(true);
         try {
             const userIdString = await AsyncStorage.getItem('usuario_id');
-            if (userIdString) {
-                const userId = Number(userIdString);
-                const fetchedClients = await getClients(userId);
-                setClients(fetchedClients);
-            } else {
-                // Lidar com o caso onde o ID do usuário não é encontrado
-                Alert.alert("Erro", "ID do usuário não encontrado. Faça o login novamente.");
-            }
+            if (!userIdString) throw new Error("ID do usuário não encontrado.");
+            const usuario_id = Number(userIdString);
+            const fetchedClients = await getClients(usuario_id);
+            setClients(fetchedClients);
         } catch (error: any) {
             Alert.alert("Erro", error.message || "Não foi possível carregar os clientes.");
+        } finally {
+            setLoading(false);
         }
     }, []);
 
-    useEffect(() => {
-        async function prepare() {
-            await SplashScreen.preventAutoHideAsync();
-        }
-        prepare();
-    }, []);
-
-    useEffect(() => {
-        if (fontsLoaded) {
-            SplashScreen.hideAsync();
-        }
-    }, [fontsLoaded]);
-
-    useFocusEffect( 
-        useCallback(() => {
-            fetchClients();
-        }, [fetchClients])
-    );
-
-    const handleViewClient = (client: Client) => {
-        router.push({
-            pathname: "/screens/detalhesCliente",
-            params: { clientId: client.id }
-        });
-    };
-
-    const handleEditClient = (client: Client) => {
-        router.push({
-            pathname: "/screens/addCliente",
-            params: { clientId: client.id },
-        });
-    };
+    useFocusEffect(useCallback(() => {
+        fetchClients();
+    }, [fetchClients]));
 
     const handleDeleteClient = async (clientId: number) => {
         Alert.alert(
             "Confirmar Exclusão",
             "Tem certeza que deseja excluir este cliente?",
             [
-                {
-                    text: "Cancelar",
-                    style: "cancel",
-                },
+                { text: "Cancelar", style: "cancel" },
                 {
                     text: "Excluir",
                     onPress: async () => {
-                        const userIdString = await AsyncStorage.getItem('usuario_id');
-                        const userId = userIdString ? Number(userIdString) : null;
-
-                        if (userId === null) {
-                            Alert.alert("Erro", "ID do usuário não encontrado.");
-                            return;
-                        }
-
                         try {
-                            // A sua função de API para deletar já está pronta para receber o ID do cliente e o ID do usuário
-                            await deleteClient(clientId, userId);
+                            const userIdString = await AsyncStorage.getItem('usuario_id');
+                            if (!userIdString) throw new Error("ID do usuário não encontrado.");
+                            await deleteClient(clientId, Number(userIdString));
                             Alert.alert("Sucesso", "Cliente excluído com sucesso!");
-                            fetchClients(); // Atualiza a lista após a exclusão
+                            fetchClients();
                         } catch (error: any) {
                             Alert.alert("Erro", error.message || "Erro ao excluir cliente.");
                         }
                     },
+                    style: 'destructive',
                 },
             ]
         );
     };
+
+    const renderItem = ({ item }: { item: Client }) => (
+        <TouchableOpacity
+            style={styles.card}
+            onPress={() => router.push({ pathname: '/screens/detalhesCliente', params: { clientId: item.id } })}
+        >
+            <View style={styles.cardIcon}>
+                <Feather name="user" size={24} color={PALETTE.VerdeAgua} />
+            </View>
+            <View style={styles.cardInfo}>
+                <Text style={styles.cardTitle}>{item.nome}</Text>
+                <Text style={styles.cardSubtitle}>{item.telefone}</Text>
+            </View>
+            <View style={styles.cardActions}>
+                <TouchableOpacity onPress={() => router.push({ pathname: '/screens/addCliente', params: { clientId: item.id } })}>
+                    <Ionicons name="pencil-outline" size={22} color={PALETTE.CinzaClaro} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteClient(item.id)} style={{ marginLeft: 15 }}>
+                    <Ionicons name="trash-outline" size={22} color={PALETTE.VermelhoErro} />
+                </TouchableOpacity>
+            </View>
+        </TouchableOpacity>
+    );
 
     if (!fontsLoaded) {
         return null;
     }
 
     return (
-        <LinearGradient colors={["#2A4D69", "#5D9B9B"]} style={styles.container}>
-            <View style={styles.container}>
-                <Header />
-
-                <View style={styles.section}>
-                    <MaterialCommunityIcons name="account-group" size={30} color="#fff" />
-                    <Text style={styles.sectionTitle}>CLIENTES</Text>
-                </View>
-
-                <View style={styles.tableContainer}>
-                    <View style={styles.tableHeader}>
-                        <Text style={styles.tableHeaderText}>Nome</Text>
-                        <Text style={styles.tableHeaderText}>Contato</Text>
-                        <Text style={styles.tableHeaderText}>Ações</Text>
-                    </View>
-                    <FlatList
-                        data={clients}
-                        keyExtractor={(item) => item.id.toString()}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity
-                                onPress={() => router.push({ pathname: '/screens/detalhesCliente', params: { clientId: item.id } })}
-                            >
-                                <View style={styles.tableRow}>
-                                    <Text style={styles.tableCell}>{item.nome}</Text>
-                                    <Text style={styles.tableCell}>{item.telefone}</Text>
-                                    <View style={styles.actionButtons}>
-                                        <TouchableOpacity onPress={() => handleEditClient(item)}>
-                                            <FontAwesome
-                                                name="edit"
-                                                size={20}
-                                                color="#F5A623"
-                                                style={styles.actionIcon}
-                                            />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity onPress={() => handleDeleteClient(item.id)}>
-                                            <FontAwesome
-                                                name="trash"
-                                                size={20}
-                                                color="#FF6347"
-                                                style={styles.actionIcon}
-                                            />
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            </TouchableOpacity>
-                        )}
-                        ListEmptyComponent={() => (
-                            <Text style={styles.emptyListText}>Nenhum cliente cadastrado.</Text>
-                        )}
-                    />
-                </View>
-
-                {addButton({ activeRoute: "/screens/addCliente" })}
-
-                <Nav style={{ marginTop: 125 }} />
+        <LinearGradient colors={[PALETTE.AzulEscuro, PALETTE.VerdeAgua]} style={styles.container}>
+            <Header />
+            <View style={styles.headerSection}>
+                <MaterialCommunityIcons name="account-group" size={30} color={PALETTE.Branco} />
+                <Text style={styles.sectionTitle}>Clientes</Text>
             </View>
+
+            {loading ? (
+                <ActivityIndicator size="large" color={PALETTE.Branco} style={{ flex: 1 }} />
+            ) : (
+                <FlatList
+                    data={clients}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderItem}
+                    contentContainerStyle={{ paddingTop: 10, paddingBottom: 180 }}
+                    ListEmptyComponent={() => (
+                        <View style={styles.emptyContainer}>
+                            <Text style={styles.emptyText}>Nenhum cliente cadastrado.</Text>
+                        </View>
+                    )}
+                />
+            )}
+            
+            <TouchableOpacity style={styles.addButton} onPress={() => router.push('/screens/addCliente')}>
+                <MaterialIcons name="add" size={30} color={PALETTE.Branco} />
+            </TouchableOpacity>
+
+            <Nav style={styles.navBar} />
         </LinearGradient>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: "center",
-    },
-    section: {
+    container: { flex: 1 },
+    headerSection: {
+        width: '90%',
         flexDirection: "row",
         alignItems: "center",
-        paddingTop: 20,
-        marginRight: 200,
-        width: "80%",
-        justifyContent: "flex-start",
-        marginBottom: 20,
+        paddingTop: 10,
+        paddingBottom: 15,
+        alignSelf: 'center',
     },
     sectionTitle: {
-        fontFamily: "BebasNeue",
-        paddingLeft: 10,
-        color: "#fff",
+        fontFamily: "BebasNeue_400Regular",
+        color: PALETTE.Branco,
+        marginLeft: 10,
         fontSize: 35,
     },
-    tableContainer: {
-        width: 370,
-        height: 430,
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
+    card: {
+        backgroundColor: PALETTE.FundoCard,
+        borderRadius: 12,
         padding: 15,
-        borderRadius: 10,
+        marginHorizontal: '5%',
+        marginBottom: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    cardIcon: {
+        marginRight: 15,
+        backgroundColor: 'rgba(93, 155, 155, 0.2)',
+        padding: 10,
+        borderRadius: 50,
+    },
+    cardInfo: {
+        flex: 1,
+    },
+    cardTitle: {
+        color: PALETTE.Branco,
+        fontSize: 16,
+        fontFamily: "Montserrat_400Regular",
+        fontWeight: 'bold',
+    },
+    cardSubtitle: {
+        color: PALETTE.CinzaClaro,
+        fontSize: 14,
+        fontFamily: "Montserrat_400Regular",
+    },
+    cardActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    emptyContainer: {
+        marginTop: 50,
+        alignItems: "center",
+    },
+    emptyText: {
+        fontFamily: "Montserrat_400Regular",
+        fontSize: 16,
+        color: PALETTE.CinzaClaro,
+    },
+    addButton: {
+        position: "absolute",
+        bottom: 80,
+        right: 20,
+        backgroundColor: "#FFA500",
+        borderRadius: 16,
+        width: 56,
+        height: 56,
+        justifyContent: "center",
+        alignItems: "center",
         shadowColor: "#000",
         shadowOpacity: 0.3,
         shadowRadius: 5,
-        shadowOffset: { width: 8, height: 5 },
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 8,
     },
-    tableHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        borderBottomWidth: 1,
-        borderBottomColor: "#fff",
-        paddingBottom: 5,
-    },
-    tableHeaderText: {
-        fontFamily: "BebasNeue",
-        fontSize: 25,
-        fontWeight: "bold",
-        color: "#fff",
-        flex: 1,
-        textAlign: "center",
-    },
-    tableRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        paddingVertical: 10,
-        borderBottomWidth: 0.5,
-        borderBottomColor: "rgba(255, 255, 255, 0.3)",
-    },
-    tableCell: {
-        fontFamily: "BebasNeue",
-        fontSize: 20,
-        color: "#fff",
-        flex: 1,
-        textAlign: "center",
-    },
-    actionButtons: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        flex: 1,
-    },
-    actionIcon: {
-        paddingHorizontal: 5,
-    },
-    emptyListText: {
-        fontFamily: "BebasNeue",
-        fontSize: 20,
-        color: "#F5F5F5",
-        textAlign: "center",
-        marginTop: 20,
+    navBar: {
+        position: 'absolute',
+        bottom: 20,
+        alignSelf: 'center',
     },
 });
 

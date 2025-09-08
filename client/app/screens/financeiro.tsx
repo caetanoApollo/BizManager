@@ -13,14 +13,27 @@ import {
     MaterialCommunityIcons,
     FontAwesome6,
     Feather,
-    Ionicons, // Ícone adicionado para editar
+    Ionicons,
 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
-import { Nav, addButton, Header } from "../components/utils";
+import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
+import { Nav, Header } from "../components/utils";
 import { router, useFocusEffect } from "expo-router";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getTransactionsByUserId, deleteTransaction } from "../services/api"; // Importa a função de exclusão
+import { getTransactionsByUserId, deleteTransaction } from "../services/api";
+
+
+const PALETTE = {
+    AzulEscuro: "#2A4D69",
+    VerdeAgua: "#5D9B9B",
+    Branco: "#F5F5F5",
+    VerdeSucesso: "#2ecc71",
+    LaranjaAlerta: "#f39c12",
+    VermelhoErro: "#e74c3c",
+    CinzaClaro: "rgba(255, 255, 255, 0.8)",
+    FundoCard: "rgba(255, 255, 255, 0.1)",
+};
 
 interface Transaction {
     id: number;
@@ -29,7 +42,7 @@ interface Transaction {
     valor: number;
     data: string;
     tipo: 'Entrada' | 'Saída';
-    categoria: string;
+    categoria?: string;
 }
 
 const FinanceScreen = () => {
@@ -38,19 +51,18 @@ const FinanceScreen = () => {
     const [caixa, setCaixa] = useState(0);
     const [faturamento, setFaturamento] = useState(0);
     const [despesas, setDespesas] = useState(0);
-    const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
+    const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
         try {
             const userIdString = await AsyncStorage.getItem('usuario_id');
-            if (userIdString) {
-                const userId = Number(userIdString);
-                const fetchedTransactions = await getTransactionsByUserId(userId);
-                const sortedTransactions = fetchedTransactions.sort((a: Transaction, b: Transaction) => new Date(b.data).getTime() - new Date(a.data).getTime());
-                setTransactions(sortedTransactions);
-                calculateTotals(fetchedTransactions);
-            }
+            if (!userIdString) throw new Error("Usuário não encontrado");
+            const usuario_id = Number(userIdString);
+            const fetchedTransactions = await getTransactionsByUserId(usuario_id);
+            const sortedTransactions = fetchedTransactions.sort((a: Transaction, b: Transaction) => new Date(b.data).getTime() - new Date(a.data).getTime());
+            setTransactions(sortedTransactions);
+            calculateTotals(fetchedTransactions);
         } catch (error: any) {
             Alert.alert("Erro", error.message || "Não foi possível carregar os dados financeiros.");
         } finally {
@@ -58,42 +70,31 @@ const FinanceScreen = () => {
         }
     }, []);
 
-    const calculateTotals = (transacoes: Transaction[]) => {
-        let totalFaturamento = 0;
-        let totalDespesas = 0;
-
-        transacoes.forEach(transacao => {
-            const valor = Number(transacao.valor);
-            if (transacao.tipo === 'Entrada') {
-                totalFaturamento += valor;
-            } else if (transacao.tipo === 'Saída') {
-                totalDespesas += valor;
-            }
-        });
-
-        setCaixa(totalFaturamento - totalDespesas);
-        setFaturamento(totalFaturamento);
-        setDespesas(totalDespesas);
-    };
-
     useFocusEffect(
         useCallback(() => {
             fetchTransactions();
         }, [fetchTransactions])
     );
 
-    const formatCurrencyBRL = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-        }).format(value);
+    const calculateTotals = (transacoes: Transaction[]) => {
+        let totalFaturamento = 0;
+        let totalDespesas = 0;
+        transacoes.forEach(transacao => {
+            const valor = Number(transacao.valor);
+            if (transacao.tipo === 'Entrada') totalFaturamento += valor;
+            else if (transacao.tipo === 'Saída') totalDespesas += valor;
+        });
+        setCaixa(totalFaturamento - totalDespesas);
+        setFaturamento(totalFaturamento);
+        setDespesas(totalDespesas);
     };
 
-    const handleTransactionPress = (transactionId: number) => {
-        router.push(`/screens/transacoesDetalhes?id=${transactionId}`);
+    const formatCurrencyBRL = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+    const handleTransactionPress = (item: Transaction) => {
+        router.push({ pathname: '/screens/transacoesDetalhes', params: { id: item.id } });
     };
 
-    // Função para deletar uma transação
     const handleDelete = (transactionId: number) => {
         Alert.alert(
             "Confirmar Exclusão",
@@ -105,12 +106,10 @@ const FinanceScreen = () => {
                     onPress: async () => {
                         try {
                             const userIdString = await AsyncStorage.getItem('usuario_id');
-                            if (userIdString) {
-                                const userId = Number(userIdString);
-                                await deleteTransaction(transactionId, userId);
-                                Alert.alert("Sucesso", "Transação excluída com sucesso.");
-                                fetchTransactions(); // Atualiza a lista
-                            }
+                            if (!userIdString) throw new Error("Usuário não encontrado");
+                            await deleteTransaction(transactionId, Number(userIdString));
+                            Alert.alert("Sucesso", "Transação excluída.");
+                            fetchTransactions();
                         } catch (error: any) {
                             Alert.alert("Erro", error.message || "Não foi possível excluir a transação.");
                         }
@@ -121,39 +120,49 @@ const FinanceScreen = () => {
         );
     };
 
-    // Função para navegar para a tela de edição
     const handleEdit = (transactionId: number) => {
-        // Supondo que você tenha uma tela de edição em /screens/editarTransacao
-        router.push(`/screens/transacoesDetalhes?id=${transactionId}&edit=true`);
+        router.push({ pathname: '/screens/transacoesDetalhes', params: { id: transactionId, edit: 'true' } });
     };
-    
-    // Componente para renderizar cada item da lista de transações
+
+    const SummaryCard = ({ title, value, iconName, color }: { title: string; value: number; iconName: any; color: string }) => (
+        <View style={styles.summaryCard}>
+            <View style={[styles.summaryIconContainer, { backgroundColor: color }]}>
+                <MaterialCommunityIcons name={iconName} size={30} color={PALETTE.Branco} />
+            </View>
+            <View>
+                <Text style={styles.summaryTitle}>{title}</Text>
+                <Text style={styles.summaryValue}>{formatCurrencyBRL(value)}</Text>
+            </View>
+        </View>
+    );
+
     const renderTransactionItem = ({ item }: { item: Transaction }) => (
-        <TouchableOpacity onPress={() => handleTransactionPress(item.id)} style={styles.transactionItem}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+        <TouchableOpacity onPress={() => handleTransactionPress(item)} style={styles.transactionItem}>
+            <View style={styles.transactionIcon}>
                 <Feather
                     name={item.tipo === 'Entrada' ? 'arrow-up-circle' : 'arrow-down-circle'}
-                    size={30}
-                    color={item.tipo === 'Entrada' ? '#06402B' : '#722F37'}
-                    style={{ marginRight: 15 }}
+                    size={28}
+                    color={item.tipo === 'Entrada' ? PALETTE.VerdeSucesso : PALETTE.LaranjaAlerta}
                 />
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.transactionTitle} numberOfLines={1}>{item.titulo}</Text>
-                    <Text style={styles.transactionDate}>
-                        {new Date(item.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
-                    </Text>
-                </View>
             </View>
-            <View style={styles.transactionActions}>
-                <Text style={[styles.transactionValue, { color: item.tipo === 'Entrada' ? '#06402B' : '#722F37' }]}>
+            <View style={styles.transactionDetails}>
+                <Text style={styles.transactionTitle} numberOfLines={1}>{item.titulo}</Text>
+                <Text style={styles.transactionCategory}>
+                    {item.categoria || new Date(item.data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })}
+                </Text>
+            </View>
+            <View style={styles.transactionValueContainer}>
+                <Text style={[styles.transactionValue, { color: item.tipo === 'Entrada' ? PALETTE.VerdeSucesso : PALETTE.VermelhoErro }]}>
                     {formatCurrencyBRL(item.valor)}
                 </Text>
-                <TouchableOpacity onPress={() => handleEdit(item.id)} style={styles.actionButton}>
-                    <Ionicons name="pencil" size={20} color="#F5F5F5" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
-                    <Ionicons name="trash-bin" size={20} color="#F5F5F5" />
-                </TouchableOpacity>
+                <View style={styles.transactionActions}>
+                    <TouchableOpacity onPress={() => handleEdit(item.id)} style={styles.actionButton}>
+                        <Ionicons name="pencil-outline" size={18} color={PALETTE.CinzaClaro} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
+                        <Ionicons name="trash-outline" size={18} color={PALETTE.CinzaClaro} />
+                    </TouchableOpacity>
+                </View>
             </View>
         </TouchableOpacity>
     );
@@ -163,48 +172,28 @@ const FinanceScreen = () => {
     }
 
     return (
-        <LinearGradient colors={["#2A4D69", "#5D9B9B"]} style={styles.container}>
+        <LinearGradient colors={[PALETTE.AzulEscuro, PALETTE.VerdeAgua]} style={styles.container}>
             <Header />
-            <View style={styles.section}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <MaterialCommunityIcons name="finance" size={30} color="#fff" />
-                    <Text style={styles.sectionTitle}>FINANCEIRO</Text>
-                </View>
+            <View style={styles.headerSection}>
+                <MaterialCommunityIcons name="finance" size={30} color={PALETTE.Branco} />
+                <Text style={styles.sectionTitle}>Financeiro</Text>
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#fff" style={{ flex: 1 }} />
+                <ActivityIndicator size="large" color={PALETTE.Branco} style={{ flex: 1 }} />
             ) : (
                 <FlatList
                     data={transactions}
                     renderItem={renderTransactionItem}
                     keyExtractor={(item) => item.id.toString()}
                     style={styles.list}
-                    contentContainerStyle={{ paddingBottom: 150 }} 
+                    contentContainerStyle={{ paddingBottom: 180, paddingTop: 10 }}
                     ListHeaderComponent={
                         <>
                             <View style={styles.summaryContainer}>
-                                <View style={styles.boxContainer}>
-                                    <View style={styles.titleContainer}>
-                                        <Text style={styles.textContainer}>Caixa:</Text>
-                                        <Text style={styles.textValue}>{formatCurrencyBRL(caixa)}</Text>
-                                    </View>
-                                    <FontAwesome6 name="money-bill" size={50} color="#fff" />
-                                </View>
-                                <View style={styles.boxContainer}>
-                                    <View style={styles.titleContainer}>
-                                        <Text style={styles.textContainer}>Faturamento:</Text>
-                                        <Text style={styles.textValue}>{formatCurrencyBRL(faturamento)}</Text>
-                                    </View>
-                                    <MaterialCommunityIcons name="trending-up" size={50} color="#fff" />
-                                </View>
-                                <View style={styles.boxContainer}>
-                                    <View style={styles.titleContainer}>
-                                        <Text style={styles.textContainer}>Despesas:</Text>
-                                        <Text style={styles.textValue}>{formatCurrencyBRL(despesas)}</Text>
-                                    </View>
-                                    <MaterialCommunityIcons name="trending-down" size={50} color="#fff" />
-                                </View>
+                                <SummaryCard title="Saldo em Caixa" value={caixa} iconName="wallet" color={PALETTE.AzulEscuro} />
+                                <SummaryCard title="Faturamento Total" value={faturamento} iconName="trending-up" color={PALETTE.VerdeSucesso} />
+                                <SummaryCard title="Despesas Totais" value={despesas} iconName="trending-down" color={PALETTE.VermelhoErro} />
                             </View>
                             <Text style={styles.listHeader}>Últimos Lançamentos</Text>
                         </>
@@ -218,10 +207,12 @@ const FinanceScreen = () => {
             )}
 
             <View style={styles.footerButtons}>
-                <TouchableOpacity style={styles.chartButton} onPress={() => router.push("/screens/graficos")}>
-                    <MaterialIcons name="bar-chart" size={25} color="#F5F5F5" />
+                <TouchableOpacity style={styles.actionButtonContainer} onPress={() => router.push("/screens/graficos")}>
+                    <MaterialIcons name="bar-chart" size={25} color={PALETTE.Branco} />
                 </TouchableOpacity>
-                {addButton({ activeRoute: "/screens/addFinan" })}
+                <TouchableOpacity style={styles.addButton} onPress={() => router.push("/screens/addFinan")}>
+                    <FontAwesome6 name="plus" size={20} color={PALETTE.Branco} />
+                </TouchableOpacity>
             </View>
 
             <Nav style={styles.navBar} />
@@ -230,123 +221,148 @@ const FinanceScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: "center",
-    },
-    section: {
+    container: { flex: 1 },
+    headerSection: {
         width: '90%',
         flexDirection: "row",
         alignItems: "center",
         paddingTop: 10,
-        justifyContent: 'flex-start'
+        alignSelf: 'center'
     },
     sectionTitle: {
         fontFamily: "BebasNeue",
-        padding: 10,
-        color: "#fff",
-        marginLeft: 5,
+        color: PALETTE.Branco,
+        marginLeft: 10,
         fontSize: 35,
     },
     summaryContainer: {
-        alignItems: 'center',
+        paddingHorizontal: '5%',
+        marginBottom: 20,
     },
-    boxContainer: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginTop: 15,
-        width: 320,
-        height: 100,
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
+    summaryCard: {
+        backgroundColor: PALETTE.FundoCard,
+        borderRadius: 12,
         padding: 15,
-        borderRadius: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    titleContainer: {
-        justifyContent: "center",
-    },
-    textContainer: {
-        fontFamily: "BebasNeue",
-        fontSize: 35,
-        color: "#fff",
-    },
-    textValue: {
-        fontFamily: "BebasNeue",
-        fontSize: 30,
-        color: "#fff",
-    },
-    footerButtons: {
-        position: 'absolute',
-        bottom: 40,
-        right: 5,
-        alignItems: 'flex-end',
-    },
-    chartButton: {
-        bottom: 40,
-        right: 20,
-        backgroundColor: "#2A4D69",
+    summaryIconContainer: {
+        padding: 12,
         borderRadius: 50,
-        width: 60,
-        height: 60,
-        justifyContent: "center",
-        alignItems: "center",
+        marginRight: 15,
     },
-    navBar: {
-        position: 'absolute',
-        bottom: 20,
-        left: 20,
-        right: 0,
+    summaryTitle: {
+        color: PALETTE.CinzaClaro,
+        fontSize: 14,
+        fontFamily: "Montserrat_400Regular",
     },
-    list: {
-        width: '100%',
+    summaryValue: {
+        color: PALETTE.Branco,
+        fontSize: 22,
+        fontFamily: "BebasNeue",
     },
+    list: { width: '100%' },
     listHeader: {
         fontFamily: 'BebasNeue',
         fontSize: 24,
-        color: '#F5F5F5',
-        marginTop: 20,
-        marginBottom: 10,
+        color: PALETTE.Branco,
+        marginBottom: 15,
         paddingHorizontal: '5%',
     },
     transactionItem: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        padding: 15,
-        borderRadius: 10,
+        backgroundColor: PALETTE.FundoCard,
+        borderRadius: 12,
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 10,
         marginHorizontal: '5%',
+        padding: 12,
+    },
+    transactionIcon: {
+        marginRight: 12,
+    },
+    transactionDetails: {
+        flex: 1,
     },
     transactionTitle: {
-        color: '#F5F5F5',
+        color: PALETTE.Branco,
         fontSize: 16,
+        fontFamily: "Montserrat_400Regular",
         fontWeight: 'bold',
     },
-    transactionDate: {
-        color: '#E0E0E0',
+    transactionCategory: {
+        color: PALETTE.CinzaClaro,
         fontSize: 12,
+        fontFamily: "Montserrat_400Regular",
+    },
+    transactionValueContainer: {
+        alignItems: 'flex-end',
     },
     transactionValue: {
         fontSize: 16,
-        fontWeight: 'bold',
-        fontFamily: 'monospace'
+        fontFamily: "BebasNeue",
+        marginBottom: 4,
+    },
+    transactionActions: {
+        flexDirection: 'row',
+    },
+    actionButton: {
+        marginLeft: 15,
     },
     emptyListContainer: {
         padding: 20,
         alignItems: 'center',
     },
     emptyListText: {
-        color: '#F5F5F5',
+        color: PALETTE.Branco,
         fontSize: 16,
+        fontFamily: "Montserrat_400Regular"
     },
-    transactionActions: {
+    footerButtons: {
+        position: 'absolute',
+        bottom: 100,
+        right: 20,
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 15,
     },
-    actionButton: {
-        marginLeft: 15,
-    }
+    actionButtonContainer: {
+        backgroundColor: "#2A4D69",
+        borderRadius: 16,
+        width: 56,
+        height: 56,
+        justifyContent: "center",
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 8,
+    },
+    addButton: {
+        backgroundColor: "#FFA500",
+        borderRadius: 16,
+        width: 56,
+        height: 56,
+        justifyContent: "center",
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 8,
+    },
+    navBar: {
+        position: 'absolute',
+        bottom: 20,
+        alignSelf: 'center',
+    },
 });
 
 export default FinanceScreen;

@@ -2,17 +2,13 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const db = require('../config/db');
 
-// Configuração do Nodemailer com ajuste de TLS
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT || "587", 10),
-    secure: process.env.EMAIL_PORT === '465',
+    secure: process.env.EMAIL_PORT === '465', 
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-        ciphers:'SSLv3'
     }
 });
 
@@ -27,7 +23,7 @@ exports.sendPasswordResetEmail = async (req, res) => {
 
         const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
         const passwordResetToken = crypto.createHash('sha256').update(resetCode).digest('hex');
-        const passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // Expira em 10 minutos
+        const passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); 
 
         await db.query('UPDATE usuarios SET passwordResetToken = ?, passwordResetExpires = ? WHERE id = ?', [passwordResetToken, passwordResetExpires, user.id]);
 

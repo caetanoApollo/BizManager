@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Stack } from "expo-router";
-import LoadingScreen from "./components/loading"; //
+import LoadingScreen from "./components/loading"; 
 
 export default function Layout() {
   const [loading, setLoading] = useState(true);
 
   return loading ? (
-    <LoadingScreen onFinish={() => setLoading(false)} /> //
+    <LoadingScreen onFinish={() => setLoading(false)} /> 
   ) : (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="screens/login" />
@@ -26,7 +26,7 @@ export default function Layout() {
       <Stack.Screen name="screens/clientes" />
       <Stack.Screen name="screens/addCliente" />
       <Stack.Screen name="screens/transacoesDetalhes" />
-      <Stack.Screen name="screens/detalhesEvento" />
+      <Stack.Screen name="screens/detalhesEventos" />
     </Stack>
   );
 }

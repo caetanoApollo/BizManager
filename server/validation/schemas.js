@@ -104,7 +104,6 @@ const invoiceSchema = Joi.object({
     data_emissao: Joi.date().iso().required(), 
     valor: Joi.number().precision(2).positive().required(),
     status: Joi.string().valid('emitida', 'cancelada').default('emitida'),
-    // arquivo_pdf: Joi.any() 
 });
 
 const scheduledServiceSchema = Joi.object({

@@ -21,7 +21,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon_app.png",
         "backgroundColor": "#2A4D69"
-      }
+      },
+      "softwareKeyboardLayoutMode": "resize" 
     },
     "web": {
       "bundler": "metro",

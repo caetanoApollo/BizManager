@@ -15,18 +15,15 @@ import { Nav, Header } from "../components/utils";
 import { getTransactionsByUserId, getScheduledServices } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// --- Paleta de Cores Otimizada ---
-// Cores ajustadas para maior vibração e legibilidade
 const PALETTE = {
     AzulEscuro: "#2A4D69",
     VerdeAgua: "#5D9B9B",
     Branco: "#F5F5F5",
-    VerdeSucesso: "#28a745", // Verde mais vivo para faturamento
-    LaranjaClaro: "#FD8D14", // Laranja mais claro para despesas
-    CinzaClaro: "rgba(255, 255, 255, 0.8)", // Aumentado a opacidade para melhor leitura
+    VerdeSucesso: "#28a745",
+    LaranjaAlerta: "#FD8D14",
+    VermelhoErro: "#e74c3c",
+    CinzaClaro: "rgba(255, 255, 255, 0.8)",
 };
-
-// --- Interfaces ---
 interface Transaction {
     valor: number;
     data: string;
@@ -43,13 +40,13 @@ interface Evento {
 const Dashboard = () => {
     const router = useRouter();
     const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular });
+    const [caixa, setCaixa] = useState(0);
     const [faturamento, setFaturamento] = useState(0);
     const [despesas, setDespesas] = useState(0);
     const [proximosEventos, setProximosEventos] = useState<Evento[]>([]);
     const [loading, setLoading] = useState(true);
     const [userName, setUserName] = useState("");
 
-    // --- Funções Auxiliares ---
     const formatCurrencyBRL = (value: number) => {
         return new Intl.NumberFormat("pt-BR", {
             style: "currency",
@@ -57,10 +54,8 @@ const Dashboard = () => {
         }).format(value);
     };
 
-    // Nova função para formatar a data dos eventos da agenda
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
-        // Formata para DD/MM
         return date.toLocaleDateString("pt-BR", {
             day: "2-digit",
             month: "2-digit",
@@ -78,14 +73,11 @@ const Dashboard = () => {
                     const userIdString = await AsyncStorage.getItem("usuario_id");
                     if (!userIdString) throw new Error("ID do usuário não encontrado.");
 
-                    const userId = Number(userIdString);
-
                     const [transactions, eventos] = await Promise.all([
-                        getTransactionsByUserId(userId),
+                        getTransactionsByUserId(Number(userIdString)),
                         getScheduledServices(),
                     ]);
 
-                    // Processamento Financeiro
                     const today = new Date();
                     const currentMonth = today.getMonth();
                     const currentYear = today.getFullYear();
@@ -106,8 +98,8 @@ const Dashboard = () => {
 
                     setFaturamento(totalFaturamento);
                     setDespesas(totalDespesas);
+                    setCaixa(totalFaturamento - totalDespesas);
 
-                    // Processamento da Agenda
                     const sortedEventos = eventos
                         .map((e: Evento) => ({
                             ...e,
@@ -116,7 +108,7 @@ const Dashboard = () => {
                         .filter((e: any) => e.fullDate >= today)
                         .sort((a: any, b: any) => a.fullDate - b.fullDate);
 
-                    setProximosEventos(sortedEventos.slice(0, 3)); // Exibindo até 3 eventos
+                    setProximosEventos(sortedEventos.slice(0, 3));
                 } catch (error) {
                     console.error("Erro ao buscar dados do dashboard:", error);
                 } finally {
@@ -146,26 +138,30 @@ const Dashboard = () => {
             style={styles.container}
         >
             <Header />
-            {/* O ScrollView agora tem mais espaçamento interno para um layout mais limpo */}
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <Text style={styles.welcomeTitle}>Olá, {userName}!</Text>
                 <Text style={styles.welcomeSubtitle}>
                     Aqui está um resumo do seu negócio.
                 </Text>
 
-                {/* Card Financeiro - Agora ocupa a largura total para mais destaque */}
                 <TouchableOpacity
                     style={styles.card}
                     onPress={() => router.push("/screens/financeiro")}
                 >
                     <Text style={styles.cardTitle}>
                         <Feather name="dollar-sign" size={22} color={PALETTE.Branco} />{" "}
-                        Financeiro
+                        Financeiro (Mês Atual)
                     </Text>
                     <View style={styles.financeRow}>
+
                         <View style={styles.financeItem}>
-                            <Text style={styles.financeLabel}>Faturamento (Mês)</Text>
-                            {/* Cor de Faturamento atualizada para VerdeSucesso */}
+                            <Text style={styles.financeLabel}>Caixa</Text>
+                            <Text style={[styles.financeValue, { color: PALETTE.Branco }]}>
+                                {formatCurrencyBRL(caixa)}
+                            </Text>
+                        </View>
+                        <View style={styles.financeItem}>
+                            <Text style={styles.financeLabel}>Faturamento</Text>
                             <Text
                                 style={[styles.financeValue, { color: PALETTE.VerdeSucesso }]}
                             >
@@ -173,10 +169,9 @@ const Dashboard = () => {
                             </Text>
                         </View>
                         <View style={styles.financeItem}>
-                            <Text style={styles.financeLabel}>Despesas (Mês)</Text>
-                            {/* Cor de Despesas atualizada para LaranjaClaro */}
+                            <Text style={styles.financeLabel}>Despesas</Text>
                             <Text
-                                style={[styles.financeValue, { color: PALETTE.LaranjaClaro }]}
+                                style={[styles.financeValue, { color: PALETTE.LaranjaAlerta }]}
                             >
                                 {formatCurrencyBRL(despesas)}
                             </Text>
@@ -184,14 +179,12 @@ const Dashboard = () => {
                     </View>
                 </TouchableOpacity>
 
-                {/* Card da Agenda - Também ocupa a largura total */}
                 <TouchableOpacity
                     style={styles.card}
                     onPress={() => router.push("/screens/agenda")}
                 >
                     <Text style={styles.cardTitle}>
-                        <Feather name="calendar" size={22} color={PALETTE.Branco} />{" "}
-                        Agenda
+                        <Feather name="calendar" size={22} color={PALETTE.Branco} /> Agenda
                     </Text>
                     {proximosEventos.length > 0 ? (
                         proximosEventos.map((evento) => (
@@ -199,7 +192,6 @@ const Dashboard = () => {
                                 <Text style={styles.eventoTitulo} numberOfLines={1}>
                                     {evento.titulo}
                                 </Text>
-                                {/* Data e Hora agora são exibidas juntas para mais contexto */}
                                 <Text style={styles.eventoDataHora}>
                                     {formatDate(evento.data)} às {evento.horario.substring(0, 5)}
                                 </Text>
@@ -228,11 +220,9 @@ const Dashboard = () => {
     );
 };
 
-// --- Folha de Estilos Reestruturada ---
 const styles = StyleSheet.create({
     container: { flex: 1 },
     loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-    // Mais padding para um visual mais 'arejado'
     scrollContainer: {
         paddingHorizontal: 20,
         paddingVertical: 24,
@@ -240,7 +230,7 @@ const styles = StyleSheet.create({
     },
     welcomeTitle: {
         fontSize: 36,
-        fontFamily: "BebasNeue",
+        fontFamily: "BebasNeue_400Regular",
         color: PALETTE.Branco,
         marginBottom: 4,
     },
@@ -249,12 +239,11 @@ const styles = StyleSheet.create({
         color: PALETTE.CinzaClaro,
         marginBottom: 24,
     },
-    // Estilo de card principal, agora maior e mais espaçoso
     card: {
         backgroundColor: "rgba(255, 255, 255, 0.1)",
-        padding: 24, // Mais padding interno
-        borderRadius: 20, // Bordas mais arredondadas
-        marginBottom: 20, // Espaçamento entre os cards
+        padding: 24,
+        borderRadius: 20,
+        marginBottom: 20,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
@@ -263,19 +252,22 @@ const styles = StyleSheet.create({
     },
     cardTitle: {
         fontSize: 24,
-        fontFamily: "BebasNeue",
+        fontFamily: "BebasNeue_400Regular",
         color: PALETTE.Branco,
         marginBottom: 20,
-        flexDirection: "row",
-        alignItems: "center",
     },
     cardDescription: { fontSize: 15, color: PALETTE.CinzaClaro },
-    // Estilos para o card financeiro
-    financeRow: { flexDirection: "row", justifyContent: "space-around" },
-    financeItem: { alignItems: "center" },
-    financeLabel: { fontSize: 14, color: PALETTE.CinzaClaro, marginBottom: 4 },
-    financeValue: { fontSize: 26, fontFamily: "BebasNeue" },
-    // Estilos para o card da agenda
+    financeRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    financeItem: {
+        alignItems: "center",
+        flex: 1,
+    },
+    financeLabel: { fontSize: 20, color: PALETTE.CinzaClaro, marginBottom: 4 },
+    financeValue: { fontSize: 18, fontFamily: "BebasNeue_400Regular" },
     eventoItem: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -290,7 +282,7 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: 8,
     },
-    eventoDataHora: { fontSize: 15, color: PALETTE.CinzaClaro }, // Novo estilo para data e hora
+    eventoDataHora: { fontSize: 15, color: PALETTE.CinzaClaro },
     noEventText: {
         color: PALETTE.CinzaClaro,
         fontStyle: "italic",

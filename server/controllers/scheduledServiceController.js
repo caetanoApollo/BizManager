@@ -1,6 +1,5 @@
 const db = require('../config/db');
 
-// Cria um novo serviço agendado para o usuário autenticado
 exports.createScheduledService = async (req, res) => {
     const usuario_id = req.user.id;
     const { cliente_id, titulo, descricao, data, horario, status } = req.body;
@@ -17,17 +16,15 @@ exports.createScheduledService = async (req, res) => {
     }
 };
 
-// Busca todos os serviços agendados do usuário autenticado
 exports.getScheduledServicesByUserId = async (req, res) => {
     const usuario_id = req.user.id;
     try {
-        // Query para buscar serviços e juntar com os nomes dos clientes
         const [rows] = await db.query(
             `SELECT sa.*, c.nome as nome_cliente 
              FROM servicos_agendados sa 
              LEFT JOIN clientes c ON sa.cliente_id = c.id 
              WHERE sa.usuario_id = ? 
-             ORDER BY sa.data DESC, sa.horario ASC`, // CORREÇÃO: Ordena por data mais recente
+             ORDER BY sa.data DESC, sa.horario ASC`,
             [usuario_id]
         );
         res.status(200).json(rows);
@@ -37,7 +34,6 @@ exports.getScheduledServicesByUserId = async (req, res) => {
     }
 };
 
-// Busca um serviço agendado específico pelo ID
 exports.getScheduledServiceById = async (req, res) => {
     const usuario_id = req.user.id;
     const { id } = req.params;
@@ -60,7 +56,6 @@ exports.getScheduledServiceById = async (req, res) => {
     }
 };
 
-// Atualiza um serviço agendado específico do usuário autenticado
 exports.updateScheduledService = async (req, res) => {
     const usuario_id = req.user.id;
     const { id } = req.params;
@@ -81,7 +76,6 @@ exports.updateScheduledService = async (req, res) => {
     }
 };
 
-// Deleta um serviço agendado específico do usuário autenticado
 exports.deleteScheduledService = async (req, res) => {
     const usuario_id = req.user.id;
     const { id } = req.params;

@@ -1,8 +1,8 @@
-export const BASE_URL = "http://172.20.91.39:3001"; //IP
+export const BASE_URL = "http://172.20.91.39:3001"; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
     
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
-    const token = await AsyncStorage.getItem('userToken'); // Corrigido para 'userToken' se for o padrão
+    const token = await AsyncStorage.getItem('token');
     const headers: Record<string, string> =
         options.headers && typeof options.headers === 'object' && !Array.isArray(options.headers)
             ? { ...options.headers as Record<string, string> }
@@ -102,7 +102,6 @@ export const getUserProfile = (usuario_id: number) => {
     return apiFetch(`/api/users/${usuario_id}`);
 };
 
-// 2. Função para atualizar os dados de texto
 export const updateUserData = (usuario_id: number, userData: { nome?: string; email?: string; telefone?: string; cnpj?: string; senha?: string }) => {
     return apiFetch(`/api/users/${usuario_id}`, {
         method: 'PUT',
@@ -170,18 +169,16 @@ export const deleteTransaction = (id: number, usuario_id: number) => {
 };
 
 // --- Agenda / Serviços Agendados ---
-// Busca todos os eventos do usuário logado
 export const getScheduledServices = () => {
     return apiFetch('/api/scheduled-services');
 };
 
-// Cria um novo evento
 export const createScheduledService = (evento: {
     cliente_id: number;
     titulo: string;
     descricao: string;
-    data: string; // Formato YYYY-MM-DD
-    horario: string; // Formato HH:MM
+    data: string;
+    horario: string; 
 }) => {
     return apiFetch('/api/scheduled-services', {
         method: 'POST',
@@ -189,7 +186,6 @@ export const createScheduledService = (evento: {
     });
 };
 
-// Atualiza um evento existente
 export const updateScheduledService = (id: number, evento: {
     cliente_id: number;
     titulo: string;
@@ -204,7 +200,6 @@ export const updateScheduledService = (id: number, evento: {
     });
 };
 
-// Deleta um evento
 export const deleteScheduledService = (id: number) => {
     return apiFetch(`/api/scheduled-services/${id}`, {
         method: 'DELETE',
