@@ -1,12 +1,13 @@
 {
   "expo": {
     "name": "BizManager",
-    "slug": "BizManager",
+    "slug": "bizmanager",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon_app.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
+    "projectId": "a486bbc9-3668-4092-beca-cc79d8b09b90",
     "fonts": [
       {
         "name": "BebasNeue",
@@ -22,7 +23,7 @@
         "foregroundImage": "./assets/images/icon_app.png",
         "backgroundColor": "#2A4D69"
       },
-      "softwareKeyboardLayoutMode": "resize" 
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",
@@ -43,6 +44,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a486bbc9-3668-4092-beca-cc79d8b09b90"
+      }
+    },
+    "owner": "caetano.apollo"
   }
 }

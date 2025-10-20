@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { getClientById } from "../services/api";
-import { AntDesign, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { getInvoiceById } from "../services/api";
+import { AntDesign, MaterialIcons, Feather } from "@expo/vector-icons";
 import { Header, Nav } from "../components/utils";
 import { useFonts, Montserrat_400Regular } from "@expo-google-fonts/montserrat";
 import { BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
@@ -24,42 +24,46 @@ const PALETTE = {
     CinzaClaro: "rgba(255, 255, 255, 0.8)",
 };
 
-interface Client {
-    nome: string;
-    email: string;
-    telefone: string;
-    observacoes: string;
-    data_cadastro: string;
+interface Invoice {
+    id: number;
+    numero: string;
+    data_emissao: string;
+    prestador_razao_social: string;
+    prestador_cnpj: string;
+    tomador_razao_social: string;
+    tomador_cnpj: string;
+    servico_discriminacao: string;
+    servico_valor: number;
 }
 
-const ClienteDetalhes: React.FC = () => {
+const DetalhesNotaScreen: React.FC = () => {
     const router = useRouter();
-    const { clientId } = useLocalSearchParams();
+    const { invoiceId } = useLocalSearchParams();
 
-    const [client, setClient] = useState<Client | null>(null);
+    const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [loading, setLoading] = useState(true);
     const [fontsLoaded] = useFonts({ Montserrat_400Regular, BebasNeue_400Regular });
 
     useEffect(() => {
-        const fetchClient = async () => {
-            if (!clientId) {
-                Alert.alert("Erro", "ID do cliente ausente.");
+        const fetchInvoice = async () => {
+            if (!invoiceId) {
+                Alert.alert("Erro", "ID da nota fiscal ausente.");
                 setLoading(false);
                 return;
             }
             try {
-                const data = await getClientById(Number(clientId));
-                setClient(data);
+                const data = await getInvoiceById(Number(invoiceId)); 
+                setInvoice(data);
             } catch (err) {
-                Alert.alert("Erro", "Não foi possível carregar os dados do cliente.");
+                Alert.alert("Erro", "Não foi possível carregar os dados da nota fiscal.");
             } finally {
                 setLoading(false);
             }
         };
-        fetchClient();
-    }, [clientId]);
-    
-    const InfoRow = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
+        fetchInvoice();
+    }, [invoiceId]);
+
+    const InfoRow = ({ icon, label, value }: { icon: any, label: string, value: string | number }) => (
         <View style={styles.infoRow}>
             <Feather name={icon} size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
             <View>
@@ -77,17 +81,17 @@ const ClienteDetalhes: React.FC = () => {
         );
     }
 
-    if (!client) {
+    if (!invoice) {
         return (
             <LinearGradient colors={[PALETTE.AzulEscuro, PALETTE.VerdeAgua]} style={styles.container}>
-                 <Header />
+                <Header />
                 <View style={styles.headerSection}>
                     <AntDesign name="arrow-left" size={30} color={PALETTE.Branco} onPress={() => router.back()} />
-                    <MaterialCommunityIcons name="account-alert-outline" size={30} color={PALETTE.Branco} />
+                    <MaterialIcons name="folder-off" size={30} color={PALETTE.Branco} />
                     <Text style={styles.title}>Erro</Text>
                 </View>
-                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-                    <Text style={styles.errorText}>Cliente não encontrado.</Text>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={styles.errorText}>Nota Fiscal não encontrada.</Text>
                 </View>
             </LinearGradient>
         );
@@ -99,27 +103,31 @@ const ClienteDetalhes: React.FC = () => {
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.headerSection}>
                     <AntDesign name="arrow-left" size={30} color={PALETTE.Branco} onPress={() => router.back()} />
-                    <MaterialCommunityIcons name="account-details" size={30} color={PALETTE.Branco} />
-                    <Text style={styles.title}>Detalhes do Cliente</Text>
+                    <MaterialIcons name="folder-open" size={30} color={PALETTE.Branco} />
+                    <Text style={styles.title}>Detalhes da Nota</Text>
                 </View>
 
                 <View style={styles.detailsContainer}>
-                    <Text style={styles.clientName}>{client.nome}</Text>
-                    
-                    <InfoRow icon="phone" label="Telefone" value={client.telefone} />
-                    <InfoRow icon="mail" label="Email" value={client.email} />
-                    <InfoRow icon="calendar" label="Cliente Desde" value={new Date(client.data_cadastro).toLocaleDateString('pt-BR')} />
-                    
-                    <Text style={styles.notesTitle}>Observações</Text>
-                    <Text style={styles.notesValue}>{client.observacoes || 'Nenhuma observação cadastrada.'}</Text>
+                    <Text style={styles.invoiceNumber}>{invoice.numero}</Text>
+
+                    <InfoRow icon="calendar" label="Data de Emissão" value={new Date(invoice.data_emissao).toLocaleDateString('pt-BR')} />
+
+                    <Text style={styles.sectionHeading}>Dados do Tomador</Text>
+                    <InfoRow icon="user" label="Razão Social" value={invoice.tomador_razao_social} />
+                    <InfoRow icon="hash" label="CNPJ" value={invoice.tomador_cnpj} />
+
+                    <Text style={styles.sectionHeading}>Dados do Serviço</Text>
+                    <InfoRow icon="dollar-sign" label="Valor do Serviço" value={`R$ ${invoice.servico_valor.toFixed(2)}`} />
+                    <Text style={styles.notesTitle}>Discriminação</Text>
+                    <Text style={styles.notesValue}>{invoice.servico_discriminacao || 'Nenhuma discriminação.'}</Text>
                 </View>
 
-                <TouchableOpacity 
-                    style={styles.editButton} 
-                    onPress={() => router.push({ pathname: '/screens/addCliente', params: { clientId } })}
+                <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => Alert.alert("Funcionalidade", "Edição de notas fiscais ainda não implementada.")}
                 >
                     <Feather name="edit" size={20} color={PALETTE.Branco} />
-                    <Text style={styles.editButtonText}>Editar Cliente</Text>
+                    <Text style={styles.editButtonText}>Editar Nota</Text>
                 </TouchableOpacity>
 
             </ScrollView>
@@ -147,7 +155,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 20,
         borderRadius: 16,
     },
-    clientName: {
+    invoiceNumber: {
         fontFamily: 'BebasNeue_400Regular',
         fontSize: 32,
         color: PALETTE.Branco,
@@ -173,6 +181,16 @@ const styles = StyleSheet.create({
         fontFamily: 'Montserrat_400Regular',
         fontSize: 16,
         color: PALETTE.Branco,
+    },
+    sectionHeading: {
+        fontFamily: 'BebasNeue_400Regular',
+        fontSize: 22,
+        color: PALETTE.Branco,
+        marginTop: 10,
+        marginBottom: 15,
+        borderLeftWidth: 3,
+        borderLeftColor: PALETTE.LaranjaPrincipal,
+        paddingLeft: 10,
     },
     notesTitle: {
         fontFamily: 'BebasNeue_400Regular',
@@ -215,4 +233,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default ClienteDetalhes;
+export default DetalhesNotaScreen;

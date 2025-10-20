@@ -97,7 +97,7 @@ const RecoveryPage: React.FC = () => {
       <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.header}>
-              <AntDesign name="arrowleft" size={30} color={PALETTE.Branco} onPress={() => router.back()} />
+              <AntDesign name="arrow-left" size={30} color={PALETTE.Branco} onPress={() => router.back()} />
               <Feather name="unlock" size={30} color={PALETTE.Branco} />
               <Text style={styles.title}>Recuperar Conta</Text>
           </View>

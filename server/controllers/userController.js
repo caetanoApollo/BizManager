@@ -2,18 +2,63 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const fetch = require('node-fetch'); 
+
+const checkCNPJStatus = async (cnpj) => {
+    const cnpjClean = cnpj.replace(/[^\d]/g, '');
+    console.log(cnpjClean);
+    const API_URL = `https://publica.cnpj.ws/cnpj/${cnpjClean}`;
+
+    try {
+        const response = await fetch(API_URL);
+
+        if (response.status === 400) {
+            return { valid: false, error: 'CNPJ não encontrado ou inválido na base da Receita Federal.' };
+        }
+
+        if (!response.ok) {
+            throw new Error(`Erro ao consultar CNPJ: Status ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.estabelecimento?.situacao_cadastral !== 'Ativa') {
+            return { valid: false, error: 'CNPJ encontrado, mas a situação cadastral não está ATIVA. Apenas CNPJs ativos podem se cadastrar.' };
+        }
+
+        return { valid: true, data };
+
+    } catch (error) {
+        console.error('Erro de rede ou na API CNPJws:', error);
+        return { valid: false, error: 'Falha na comunicação com o serviço de validação de CNPJ. Tente novamente mais tarde.' };
+    }
+};
 
 exports.registerUser = async (req, res) => {
+    console.log('Iniciando processo de cadastro de usuário...');
     const { nome, email, senha, telefone, cnpj } = req.body;
+    const cnpjClean = cnpj.replace(/[^\d]/g, '');
+    console.log(cnpjClean);
+    
+
     if (!nome || !email || !senha || !telefone || !cnpj) {
         console.warn('Tentativa de cadastro com campos obrigatórios faltando.');
         return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
     }
+
     try {
+        console.log(cnpjClean);
+        const cnpjValidation = await checkCNPJStatus(cnpjClean);
+        if (!cnpjValidation.valid) {
+            console.log(cnpjClean);
+            return res.status(400).json({ error: cnpjValidation.error });
+        }
+        
+
         const [existe] = await db.query('SELECT id FROM usuarios WHERE cnpj = ? OR email = ?', [cnpj, email]);
         if (existe.length > 0) {
             return res.status(409).json({ error: 'Já existe um usuário com este CNPJ ou E-mail.' });
         }
+
         const hashedPassword = await bcrypt.hash(senha, 10);
         const [result] = await db.query(
             'INSERT INTO usuarios (nome, email, senha, telefone, cnpj) VALUES (?, ?, ?, ?, ?)',
@@ -29,10 +74,13 @@ exports.registerUser = async (req, res) => {
         res.status(201).json({ id: result.insertId, nome, email, telefone, cnpj });
     } catch (err) {
         console.error('Erro ao cadastrar usuário:', err);
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Já existe um usuário com este CNPJ ou E-mail.' });
+        }
         res.status(500).json({ error: 'Erro ao cadastrar usuário.' });
     }
 };
-
+console.timeEnd('cadastro');
 
 exports.loginUser = async (req, res) => {
     const { identificador, senha } = req.body;
@@ -45,7 +93,7 @@ exports.loginUser = async (req, res) => {
 
         const [rows] = await db.query(
             'SELECT * FROM usuarios WHERE cnpj = ? OR email = ?',
-            [loginIdentificador, identificador] 
+            [loginIdentificador, identificador]
         );
 
         if (rows.length === 0) {

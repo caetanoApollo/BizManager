@@ -121,7 +121,7 @@ const AddClientPage: React.FC = () => {
             >
                 <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
                     <View style={styles.headerSection}>
-                        <AntDesign name="arrowleft" size={30} color={PALETTE.Branco} onPress={() => router.back()} />
+                        <AntDesign name="arrow-left" size={30} color={PALETTE.Branco} onPress={() => router.back()} />
                         <MaterialCommunityIcons name="account-group" size={30} color={PALETTE.Branco} />
                         <Text style={styles.title}>{isEditing ? "Editar Cliente" : "Novo Cliente"}</Text>
                     </View>

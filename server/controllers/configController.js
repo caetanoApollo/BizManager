@@ -68,3 +68,20 @@ exports.updateConfigs = async (req, res) => {
         res.status(500).json({ error: 'Erro ao atualizar configurações.' });
     }
 };
+
+exports.savePushToken = async (req, res) => {
+    const { token } = req.body;
+    const usuario_id = req.user.id; 
+
+    if (!token) {
+        return res.status(400).json({ error: 'Token de notificação é obrigatório.' });
+    }
+
+    try {
+        await db.query('UPDATE configuracoes SET push_token = ? WHERE usuario_id = ?', [token, usuario_id]);
+        res.status(200).json({ message: 'Token de notificação salvo com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao salvar token de notificação:', err);
+        res.status(500).json({ error: 'Erro ao salvar token de notificação.' });
+    }
+};

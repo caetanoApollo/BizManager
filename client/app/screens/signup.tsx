@@ -10,6 +10,7 @@ import {
   ScrollView,
   Platform,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import {
   MaterialCommunityIcons,
@@ -94,7 +95,12 @@ const CadastroPage: React.FC = () => {
       <KeyboardAvoidingView style={{ flex: 1, width: '100%' }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-          <Text style={styles.title}>BIZMANAGER</Text>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../../assets/images/logo_page.png')}
+                style={{ width: 250, height: 120, marginBottom: 10 }}
+              />
+            </View>
             <Text style={styles.create}>Criar Conta</Text>
           </View>
 
@@ -155,6 +161,10 @@ const styles = StyleSheet.create({
     gap: 10,
     alignSelf: "center",
     marginBottom: 20,
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 32,
   },
   title: {
     fontSize: 60,

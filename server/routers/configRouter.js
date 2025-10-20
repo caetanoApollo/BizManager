@@ -73,4 +73,35 @@ router.put(
     configController.updateConfigs
 );
 
+/**
+ * @swagger
+ * /config/token:
+ *   put:
+ *     summary: Salva o token de push (notificações) do usuário
+ *     tags: [Configurações]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID do usuário
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Configuracoes'
+ *     responses:
+ *       200:
+ *         description: .
+ *       400:
+ *         description: Dados inválidos.
+ */
+router.put('/config/token', 
+    authMiddleware, 
+    configController.savePushToken);
+
 module.exports = router;

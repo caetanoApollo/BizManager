@@ -161,7 +161,7 @@ const TransacoesDetalhesScreen = () => {
                 <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
 
                     <View style={styles.header}>
-                        <AntDesign name="arrowleft" size={30} color={PALETTE.Branco} onPress={() => router.back()} />
+                        <AntDesign name="arrow-left" size={30} color={PALETTE.Branco} onPress={() => router.back()} />
                         <MaterialCommunityIcons name="finance" size={30} color="#fff" />
                         <Text style={styles.title}>{pageTitle}</Text>
                     </View>

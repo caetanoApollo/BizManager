@@ -144,7 +144,7 @@ const AddFinanScreen: React.FC = () => {
         >
           <View style={styles.header}>
             <AntDesign
-              name="arrowleft"
+              name="arrow-left"
               size={30}
               color={PALETTE.Branco}
               onPress={() => router.back()}

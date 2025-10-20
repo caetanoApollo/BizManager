@@ -1,6 +1,6 @@
-export const BASE_URL = "http://172.20.91.39:3001"; 
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 import AsyncStorage from '@react-native-async-storage/async-storage';
-    
+
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     const token = await AsyncStorage.getItem('token');
     const headers: Record<string, string> =
@@ -49,7 +49,7 @@ export const cadastro = async (nome: string, email: string, telefone: string, cn
         cnpj,
         senha,
     };
-    
+
     const response = await apiFetch('/api/cadastro', {
         method: 'POST',
         body: JSON.stringify(body),
@@ -69,7 +69,7 @@ export const forgotPassword = async (email: string) => {
 export const createClient = (usuario_id: number, nome: string, email: string, telefone: string, observacao: string) => {
     return apiFetch('/api/clients', {
         method: 'POST',
-        body: JSON.stringify({ usuario_id, nome, email, telefone, observacoes: observacao }), 
+        body: JSON.stringify({ usuario_id, nome, email, telefone, observacoes: observacao }),
     });
 };
 
@@ -178,7 +178,7 @@ export const createScheduledService = (evento: {
     titulo: string;
     descricao: string;
     data: string;
-    horario: string; 
+    horario: string;
 }) => {
     return apiFetch('/api/scheduled-services', {
         method: 'POST',
@@ -209,3 +209,91 @@ export const deleteScheduledService = (id: number) => {
 export const getScheduledServiceById = (id: number) => {
     return apiFetch(`/api/scheduled-services/${id}`);
 };
+
+// --- Estoque ---
+export const createProduct = (usuario_id: number, nome: string, descricao: string, quantidade: number, quantidade_minima: number, preco_custo: number, preco_venda: number, fornecedor: string) => {
+    return apiFetch('/api/products', {
+        method: 'POST',
+        body: JSON.stringify({ usuario_id, nome, descricao, quantidade, quantidade_minima, preco_custo, preco_venda, fornecedor }),
+    });
+};
+
+export const getProductsByUserId = (usuario_id: number) => {
+    return apiFetch(`/api/products/${usuario_id}`);
+};
+
+export const updateProduct = (id: number, usuario_id: number, nome: string, descricao: string, quantidade: number, quantidade_minima: number, preco_custo: number, preco_venda: number, fornecedor: string) => {
+    return apiFetch(`/api/products/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ usuario_id, nome, descricao, quantidade, quantidade_minima, preco_custo, preco_venda, fornecedor }),
+    });
+};
+
+export const deleteProduct = (id: number, usuario_id: number) => {
+    return apiFetch(`/api/products/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ usuario_id }),
+    });
+};
+
+// --- Notas Fiscais ---
+export const createInvoice = async (invoiceData: {
+    usuario_id: number;
+    cliente_id?: number;
+    numero: string;
+    servico_fornecido: string;
+    cnpj_tomador: string;
+    data_emissao: string;
+    valor: number;
+    status: 'emitida' | 'cancelada';
+}) => {
+    return apiFetch('/api/invoices', {
+        method: 'POST',
+        body: JSON.stringify(invoiceData),
+    });
+};
+
+export const getInvoices = async (usuario_id: number) => {
+    return apiFetch(`/api/invoices/${usuario_id}`);
+};
+
+export const updateInvoice = async (invoiceId: number, invoiceData: {
+    usuario_id: number;
+    cliente_id?: number;
+    numero: string;
+    servico_fornecido: string;
+    cnpj_tomador: string;
+    data_emissao: string;
+    valor: number;
+    status: 'emitida' | 'cancelada';
+}) => {
+    return apiFetch(`/api/invoices/${invoiceId}`, {
+        method: 'PUT',
+        body: JSON.stringify(invoiceData),
+    });
+};
+
+export const deleteInvoice = async (id: number, usuario_id: number) => {
+    return apiFetch(`/api/invoices/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ usuario_id }),
+    });
+};
+
+export const getInvoiceById = async (id: number) => {
+    return apiFetch(`/api/invoices/${id}`);
+};
+
+// --- Notificações ---
+// export const savePushToken = async (token: string): Promise<any> => {
+//     try {
+//         const response = await apiFetch('/config/token', {
+//             method: 'PUT',
+//             body: JSON.stringify({ token }),
+//         });
+//         return response;
+//     } catch (error: any) {
+//         console.error('Erro ao salvar token de notificação:', error?.message ?? error);
+//         throw error;
+//     }
+// };

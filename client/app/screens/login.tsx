@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   TouchableWithoutFeedback,
   Keyboard,
+  Image,
 } from "react-native";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -110,17 +111,10 @@ export default function LoginPage() {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.logoContainer}>
-              <MaterialCommunityIcons
-                name="briefcase-account"
-                size={60}
-                color={PALETTE.LaranjaPrincipal}
-                style={{ marginBottom: 10 }}
+              <Image 
+              source={require('../../assets/images/logo_page.png')}
+              style={{ width: 250, height: 120, marginBottom: 10 }}
               />
-              <Text style={styles.title}>BIZMANAGER</Text>
-              <View style={styles.titleBar} />
-              <Text style={styles.subtitle}>
-                <Text style={styles.subtitleStrong}>Gerencie seu negócio</Text> de forma inteligente
-              </Text>
             </View>
 
             <View style={styles.formContainer}>

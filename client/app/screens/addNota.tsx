@@ -1,14 +1,23 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform, KeyboardAvoidingView } from "react-native";
-import { MaterialIcons, AntDesign } from "@expo/vector-icons";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform, KeyboardAvoidingView, ActivityIndicator, Modal, FlatList } from "react-native";
+import { MaterialIcons, AntDesign, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFonts, BebasNeue_400Regular } from "@expo-google-fonts/bebas-neue";
 import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import { useRouter } from "expo-router";
-import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Header, Nav } from "../components/utils";
-import { getUserProfile, getClients } from "../services/api"; 
+import { getUserProfile, getClients } from "../services/api";
+
+const PALETTE = {
+    LaranjaPrincipal: "#F5A623",
+    LaranjaSecundario: "#FFBC42",
+    VerdeAgua: "#5D9B9B",
+    AzulEscuro: "#2A4D69",
+    Branco: "#F5F5F5",
+    CinzaClaro: "#ccc",
+    FundoCard: "rgba(255, 255, 255, 0.1)",
+};
 
 interface Endereco {
     logradouro: string;
@@ -45,36 +54,87 @@ interface Servico {
 interface Cliente {
     id: number;
     nome: string;
-    cnpj?: string; 
+    cnpj?: string;
     email?: string;
-    endereco?: string; 
+    endereco?: string;
 }
 
+const formatDate = (text: string) =>
+    text
+        .replace(/\D/g, "")
+        .replace(/(\d{2})(\d)/, "$1/$2")
+        .replace(/(\d{2})(\d)/, "$1/$2")
+        .slice(0, 10);
+
+const formatCurrencyForDisplay = (num: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+};
+
+const formatCurrencyForInput = (text: string) => {
+    const cleaned = text.replace(/\D/g, '');
+    if (!cleaned) return '';
+    const number = parseFloat(cleaned) / 100;
+    return formatCurrencyForDisplay(number);
+};
+
+const formatCpfCnpj = (value: string) => {
+    const cleanedValue = value.replace(/\D/g, "");
+    let formatted = cleanedValue;
+
+    if (cleanedValue.length <= 11) {
+        formatted = cleanedValue;
+        if (cleanedValue.length > 3) formatted = formatted.replace(/^(\d{3})(\d)/, "$1.$2");
+        if (cleanedValue.length > 6) formatted = formatted.replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
+        if (cleanedValue.length > 9) formatted = formatted.replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
+        return formatted.slice(0, 14); 
+    }
+
+    if (cleanedValue.length > 11) {
+        formatted = cleanedValue;
+        if (cleanedValue.length > 2) formatted = formatted.replace(/^(\d{2})(\d)/, "$1.$2");
+        if (cleanedValue.length > 5) formatted = formatted.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+        if (cleanedValue.length > 8) formatted = formatted.replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3/$4");
+        if (cleanedValue.length > 12) formatted = formatted.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5");
+        return formatted.slice(0, 18); 
+    }
+
+    return formatted;
+};
 
 const AddNotaPage: React.FC = () => {
     const router = useRouter();
     const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
-    const [data_emissao, setDataEmissao] = useState(new Date().toISOString().split('T')[0]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    const todayDateFormatted = new Date().toLocaleDateString('pt-BR');
+    const [dataEmissao, setDataEmissao] = useState(todayDateFormatted);
+    const [valorServico, setValorServico] = useState(formatCurrencyForDisplay(0)); 
+    const [aliquotaInput, setAliquotaInput] = useState('0');
+
+    const [clientes, setClientes] = useState<Cliente[]>([]);
+    const [clienteTomadorId, setClienteTomadorId] = useState<number | null>(null);
+    const [clienteNomeTomador, setClienteNomeTomador] = useState("Selecione um cliente...");
+    const [modalClientesVisible, setModalClientesVisible] = useState(false);
+
+
     const [prestador, setPrestador] = useState<Prestador>({ cnpj: '', inscricao_municipal: '', codigo_municipio: '' });
     const [tomador, setTomador] = useState<Tomador>({
         cnpj: '', razao_social: '', email: '',
         endereco: { logradouro: '', numero: '', complemento: '', bairro: '', codigo_municipio: '', uf: '', cep: '' }
     });
-    const [servico, setServico] = useState<Servico>({
+    const [servico, setServico] = useState<Omit<Servico, 'valor_servicos'>>({
         aliquota: 0,
         discriminacao: '',
         iss_retido: false,
         item_lista_servico: '',
         codigo_tributario_municipio: '',
-        valor_servicos: 0
     });
-    
-    const [clientes, setClientes] = useState<Cliente[]>([]);
-    const [selectedClientId, setSelectedClientId] = useState<string | number>('');
 
     useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
             try {
                 const usuarioIdString = await AsyncStorage.getItem('usuario_id');
                 if (!usuarioIdString) throw new Error("ID do usuário não encontrado.");
@@ -83,8 +143,8 @@ const AddNotaPage: React.FC = () => {
                 const userProfile = await getUserProfile(usuario_id);
                 setPrestador({
                     cnpj: userProfile.cnpj || '',
-                    inscricao_municipal: '12345',
-                    codigo_municipio: '3516200',
+                    inscricao_municipal: '12345', 
+                    codigo_municipio: '3516200', 
                 });
 
                 const clientList = await getClients(usuario_id);
@@ -92,166 +152,491 @@ const AddNotaPage: React.FC = () => {
 
             } catch (error: any) {
                 Alert.alert("Erro ao carregar dados", error.message);
+            } finally {
+                setLoading(false);
             }
         };
         fetchData();
     }, []);
 
-    useEffect(() => {
-        if (selectedClientId) {
-            const clienteSelecionado = clientes.find(c => c.id === selectedClientId);
-            if (clienteSelecionado) {
-                setTomador(prev => ({
-                    ...prev,
-                    cnpj: clienteSelecionado.cnpj || '',
-                    razao_social: clienteSelecionado.nome,
-                    email: clienteSelecionado.email || '',
-                    endereco: {
-                        ...prev.endereco,
-                        logradouro: clienteSelecionado.endereco || ''
-                    }
-                }));
+    const handleSelectClient = (cliente: Cliente) => {
+        setClienteTomadorId(cliente.id);
+        setClienteNomeTomador(cliente.nome);
+        
+        setTomador(prev => ({
+            ...prev,
+            razao_social: cliente.nome,
+            cnpj: formatCpfCnpj(cliente.cnpj || ''),
+            email: cliente.email || '',
+            endereco: {
+                ...prev.endereco,
+                logradouro: cliente.endereco || ''
             }
-        }
-    }, [selectedClientId, clientes]);
+        }));
+        
+        setModalClientesVisible(false);
+    };
+
+    const handleValorChange = (text: string) => {
+        const formatted = formatCurrencyForInput(text);
+        setValorServico(formatted);
+    };
+
+    const handleCpfCnpjChange = (text: string) => {
+        setTomador(t => ({ ...t, cnpj: formatCpfCnpj(text) }));
+    };
+
+    const handleAliquotaChange = (text: string) => {
+        let cleaned = text.replace(/[^\d,.]/g, '');
+        
+        setAliquotaInput(cleaned);
+
+        const normalized = cleaned.replace(',', '.');
+        const floatValue = parseFloat(normalized) || 0;
+        
+        setServico(s => ({ ...s, aliquota: floatValue }));
+    };
 
     const handleSalvarNota = async () => {
+        const valorNumerico = parseFloat(valorServico.replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+        if (!tomador.razao_social || tomador.cnpj.replace(/\D/g, '').length < 11 || valorNumerico <= 0 || !dataEmissao) {
+            Alert.alert("Erro", "Campos obrigatórios (Tomador, CPF/CNPJ válido, Valor e Data) não preenchidos corretamente.");
+            return;
+        }
+
+        const [dia, mes, ano] = dataEmissao.split('/');
+        if (!dia || !mes || !ano || dia.length !== 2 || mes.length !== 2 || ano.length !== 4) {
+            Alert.alert("Erro", "Formato de data de emissão inválido. Use DD/MM/AAAA.");
+            return;
+        }
+        const formattedData = `${ano}-${mes}-${dia}`;
+
+        setSaving(true);
         try {
             const usuarioIdString = await AsyncStorage.getItem('usuario_id');
             if (!usuarioIdString) throw new Error("Usuário não autenticado.");
-            
-            const notaFiscalData = { data_emissao, prestador, tomador, servico };
-            
-            
+
+            const servicoCompleto: Servico = {
+                ...servico,
+                valor_servicos: valorNumerico,
+            };
+
+            const tomadorCpfCnpjClean = tomador.cnpj.replace(/\D/g, '');
+
+            const notaFiscalData = {
+                data_emissao: formattedData,
+                prestador,
+                tomador: { ...tomador, cnpj: tomadorCpfCnpjClean },
+                servico: servicoCompleto
+            };
+            console.log("Nota Fiscal Data:", notaFiscalData);
             Alert.alert("Sucesso", "Nota Fiscal salva com sucesso!");
             router.push("/screens/notaFiscal");
         } catch (error: any) {
             Alert.alert("Erro ao salvar Nota Fiscal", error.message);
+        } finally {
+            setSaving(false);
         }
     };
-    
-    if (!fontsLoaded) return null;
+
+    if (!fontsLoaded || loading) {
+        return (
+            <LinearGradient colors={[PALETTE.AzulEscuro, PALETTE.VerdeAgua]} style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color={PALETTE.Branco} />
+            </LinearGradient>
+        );
+    }
 
     return (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-            <LinearGradient colors={["#5D9B9B", "#2A4D69"]} style={styles.container}>
+            <LinearGradient colors={[PALETTE.AzulEscuro, PALETTE.VerdeAgua]} style={styles.container}>
                 <Header />
-                <ScrollView contentContainerStyle={styles.scrollContainer}>
-                    <View style={styles.subtitle}>
-                        <AntDesign name="arrowleft" size={30} color="#F5F5F5" onPress={() => router.back()} />
-                        <MaterialIcons name="folder" size={30} color="#fff" />
-                        <Text style={styles.titleText}>Nova Nota Fiscal</Text>
+                <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+                    <View style={styles.headerSection}>
+                        <AntDesign name="arrow-left" size={30} color={PALETTE.Branco} onPress={() => router.back()} />
+                        <MaterialIcons name="folder" size={30} color={PALETTE.Branco} />
+                        <Text style={styles.sectionTitle}>Nova Nota Fiscal</Text>
                     </View>
 
-                    <View style={styles.inputContainer}>
+                    <View style={styles.formContainer}>
                         <Text style={styles.label}>Cliente (Tomador)</Text>
-                        <View style={styles.pickerWrapper}>
-                            <Picker
-                                selectedValue={selectedClientId}
-                                onValueChange={(itemValue) => setSelectedClientId(itemValue)}
-                                style={styles.picker}
+                        
+                        {/* NOVO SELETOR DE CLIENTES SIMULANDO INPUT COM PLACEHOLDER */}
+                        <TouchableOpacity
+                            style={styles.inputGroup} 
+                            onPress={() => setModalClientesVisible(true)}
+                        >
+                            <Feather name="user" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <Text 
+                                style={[
+                                    styles.input, 
+                                    styles.pickerText, 
+                                    !clienteTomadorId && styles.placeholderText
+                                ]}
                             >
-                                <Picker.Item label="Selecione um cliente..." value="" />
-                                {clientes.map(cliente => (
-                                    <Picker.Item key={cliente.id} label={cliente.nome} value={cliente.id} />
-                                ))}
-                            </Picker>
+                                {clienteNomeTomador}
+                            </Text>
+                        </TouchableOpacity>
+
+
+                        <Text style={styles.sectionHeading}>Data de Emissão</Text>
+                        <View style={styles.inputGroup}>
+                            <Feather name="calendar" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={dataEmissao}
+                                onChangeText={(text) => setDataEmissao(formatDate(text))}
+                                placeholder="DD/MM/AAAA"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                                keyboardType="numeric"
+                                maxLength={10}
+                            />
                         </View>
 
-                        <Text style={styles.sectionTitle}>Dados do Tomador</Text>
-                        <TextInput style={styles.input} value={tomador.razao_social} onChangeText={text => setTomador(t => ({ ...t, razao_social: text }))} placeholder="Razão Social" />
-                        <TextInput style={styles.input} value={tomador.cnpj} onChangeText={text => setTomador(t => ({ ...t, cnpj: text }))} placeholder="CNPJ do Tomador" keyboardType="numeric" />
-                        <TextInput style={styles.input} value={tomador.email} onChangeText={text => setTomador(t => ({ ...t, email: text }))} placeholder="Email do Tomador" keyboardType="email-address"/>
-                        <TextInput style={styles.input} value={tomador.endereco.logradouro} onChangeText={text => setTomador(t => ({ ...t, endereco: { ...t.endereco, logradouro: text } }))} placeholder="Logradouro" />
-                        <TextInput style={styles.input} value={tomador.endereco.numero} onChangeText={text => setTomador(t => ({ ...t, endereco: { ...t.endereco, numero: text } }))} placeholder="Número" />
+
+                        <Text style={styles.sectionHeading}>Dados do Tomador</Text>
+                        <View style={styles.inputGroup}>
+                            <Feather name="user" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={tomador.razao_social}
+                                onChangeText={text => setTomador(t => ({ ...t, razao_social: text }))}
+                                placeholder="Razão Social"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Feather name="hash" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={tomador.cnpj}
+                                onChangeText={handleCpfCnpjChange}
+                                placeholder="CNPJ ou CPF"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                                keyboardType="numeric"
+                                maxLength={18} 
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Feather name="mail" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={tomador.email}
+                                onChangeText={text => setTomador(t => ({ ...t, email: text }))}
+                                placeholder="Email"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                                keyboardType="email-address"
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Feather name="map-pin" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={tomador.endereco.logradouro}
+                                onChangeText={text => setTomador(t => ({ ...t, endereco: { ...t.endereco, logradouro: text } }))}
+                                placeholder="Logradouro"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Feather name="home" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={tomador.endereco.numero}
+                                onChangeText={text => setTomador(t => ({ ...t, endereco: { ...t.endereco, numero: text } }))}
+                                placeholder="Número"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Feather name="layers" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={tomador.endereco.bairro}
+                                onChangeText={text => setTomador(t => ({ ...t, endereco: { ...t.endereco, bairro: text } }))}
+                                placeholder="Bairro"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Feather name="send" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={tomador.endereco.cep}
+                                onChangeText={text => setTomador(t => ({ ...t, endereco: { ...t.endereco, cep: text } }))}
+                                placeholder="CEP"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                                keyboardType="numeric"
+                            />
+                        </View>
+                        <View style={styles.row}>
+                            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                                <Feather name="map" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={tomador.endereco.uf}
+                                    onChangeText={text => setTomador(t => ({ ...t, endereco: { ...t.endereco, uf: text } }))}
+                                    placeholder="UF"
+                                    placeholderTextColor={PALETTE.CinzaClaro}
+                                    maxLength={2}
+                                />
+                            </View>
+                            <View style={[styles.inputGroup, { flex: 1 }]}>
+                                <Feather name="map" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={tomador.endereco.codigo_municipio}
+                                    onChangeText={text => setTomador(t => ({ ...t, endereco: { ...t.endereco, codigo_municipio: text } }))}
+                                    placeholder="Cód. Município"
+                                    placeholderTextColor={PALETTE.CinzaClaro}
+                                    keyboardType="numeric"
+                                />
+                            </View>
+                        </View>
 
 
-                        <Text style={styles.sectionTitle}>Dados do Serviço</Text>
-                        <TextInput style={styles.input} value={String(servico.valor_servicos)} onChangeText={text => setServico(s => ({ ...s, valor_servicos: parseFloat(text) || 0 }))} placeholder="Valor dos Serviços" keyboardType="numeric" />
-                        <TextInput style={[styles.input, {height: 80}]} value={servico.discriminacao} onChangeText={text => setServico(s => ({ ...s, discriminacao: text }))} placeholder="Discriminação do Serviço" multiline />
-                        <TextInput style={styles.input} value={String(servico.aliquota)} onChangeText={text => setServico(s => ({ ...s, aliquota: parseFloat(text) || 0 }))} placeholder="Alíquota (%)" keyboardType="numeric" />
-                        <TextInput style={styles.input} value={servico.item_lista_servico} onChangeText={text => setServico(s => ({ ...s, item_lista_servico: text }))} placeholder="Item da Lista de Serviço" />
-                        <TextInput style={styles.input} value={servico.codigo_tributario_municipio} onChangeText={text => setServico(s => ({ ...s, codigo_tributario_municipio: text }))} placeholder="Código Tributário do Município" />
-                        
-                        <TouchableOpacity style={styles.button} onPress={handleSalvarNota}>
-                            <Text style={styles.buttonText}>Salvar Nota</Text>
+                        <Text style={styles.sectionHeading}>Dados do Serviço</Text>
+                        <View style={styles.inputGroup}>
+                            <Feather name="dollar-sign" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={valorServico}
+                                onChangeText={handleValorChange}
+                                placeholder="Valor dos Serviços"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                                keyboardType="numeric"
+                            />
+                        </View>
+                        <View style={[styles.inputGroup, styles.alignTop]}>
+                            <Feather name="file-text" size={20} color={PALETTE.CinzaClaro} style={[styles.icon, { paddingTop: 12 }]} />
+                            <TextInput
+                                style={[styles.input, styles.multilineInput]}
+                                value={servico.discriminacao}
+                                onChangeText={text => setServico(s => ({ ...s, discriminacao: text }))}
+                                placeholder="Discriminação do Serviço"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                                multiline
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Feather name="percent" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={aliquotaInput}
+                                onChangeText={handleAliquotaChange}
+                                placeholder="Alíquota (%)"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                                keyboardType="numeric"
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Feather name="list" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={servico.item_lista_servico}
+                                onChangeText={text => setServico(s => ({ ...s, item_lista_servico: text }))}
+                                placeholder="Item da Lista de Serviço"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Feather name="map" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                value={servico.codigo_tributario_municipio}
+                                onChangeText={text => setServico(s => ({ ...s, codigo_tributario_municipio: text }))}
+                                placeholder="Código Tributário do Município"
+                                placeholderTextColor={PALETTE.CinzaClaro}
+                            />
+                        </View>
+
+                        <TouchableOpacity style={styles.button} onPress={handleSalvarNota} disabled={saving}>
+                            {saving ? (
+                                <ActivityIndicator color={PALETTE.Branco} />
+                            ) : (
+                                <>
+                                    <Feather name="check-circle" size={20} color={PALETTE.Branco} />
+                                    <Text style={styles.buttonText}>Salvar Nota</Text>
+                                </>
+                            )}
                         </TouchableOpacity>
                     </View>
+                    <Nav style={{marginLeft: 20}} />
                 </ScrollView>
-                <Nav />
             </LinearGradient>
+            
+            <Modal
+                visible={modalClientesVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setModalClientesVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>Selecione um Cliente</Text>
+                        <FlatList
+                            data={clientes}
+                            keyExtractor={(item) => item.id.toString()}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={styles.clientItem}
+                                    onPress={() => handleSelectClient(item)}
+                                >
+                                    <Text style={styles.clientItemText}>{item.nome}</Text>
+                                </TouchableOpacity>
+                            )}
+                            ListEmptyComponent={
+                                <Text style={styles.emptyText}>
+                                    Nenhum cliente cadastrado.
+                                </Text>
+                            }
+                        />
+                        <TouchableOpacity
+                            style={styles.modalCloseButton}
+                            onPress={() => setModalClientesVisible(false)}
+                        >
+                            <Text style={styles.modalCloseButtonText}>Fechar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </KeyboardAvoidingView>
     );
 };
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    scrollContainer: { flexGrow: 1, alignItems: 'center', paddingBottom: 100 },
-    subtitle: {
+    loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    scrollContainer: { flexGrow: 1, paddingBottom: 100 },
+    headerSection: {
         width: '90%',
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 10,
+        paddingTop: 10,
+        paddingBottom: 15,
+        alignSelf: 'center',
         gap: 10,
     },
-    titleText: {
-        fontSize: 25,
-        color: "#F5F5F5",
-        fontFamily: "BebasNeue",
-    },
-    inputContainer: {
-        width: "90%",
-        backgroundColor: "rgba(245, 245, 245, 0.09)",
-        borderRadius: 10,
-        padding: 20,
-    },
     sectionTitle: {
-        fontFamily: "BebasNeue",
-        color: "#fff",
+        fontFamily: "BebasNeue_400Regular",
+        color: PALETTE.Branco,
+        fontSize: 35,
+    },
+    formContainer: {
+        width: "90%",
+        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        borderRadius: 16,
+        padding: 20,
+        alignSelf: 'center',
+    },
+    sectionHeading: {
+        fontFamily: "BebasNeue_400Regular",
+        color: PALETTE.Branco,
         fontSize: 22,
         marginTop: 15,
         marginBottom: 10,
-        borderBottomWidth: 1,
-        borderColor: '#5D9B9B',
-        paddingBottom: 5,
+        borderLeftWidth: 3,
+        borderLeftColor: PALETTE.LaranjaPrincipal,
+        paddingLeft: 10,
     },
     label: {
-        color: "#F5F5F5",
+        color: PALETTE.Branco,
         fontSize: 20,
-        fontFamily: "BebasNeue",
+        fontFamily: "BebasNeue_400Regular",
         marginBottom: 5,
-        marginTop: 10,
     },
+    inputGroup: {
+        marginBottom: 20,
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        borderRadius: 12,
+    },
+    alignTop: { alignItems: "flex-start" },
+    icon: { paddingLeft: 15, paddingRight: 10 },
     input: {
-        backgroundColor: "rgba(42, 77, 105, 0.35)",
-        borderRadius: 5,
-        padding: 10,
-        color: "#F5F5F5",
+        flex: 1,
+        paddingVertical: 15,
+        paddingRight: 15,
+        color: PALETTE.Branco,
         fontSize: 16,
-        marginBottom: 10,
-        width: "100%",
-        fontFamily: "Montserrat",
+        fontFamily: "Montserrat_400Regular",
     },
+    pickerText: { 
+        paddingVertical: 15, 
+        paddingRight: 15, 
+        color: PALETTE.Branco,
+        fontSize: 16,
+        fontFamily: "Montserrat_400Regular",
+    },
+    placeholderText: {
+        color: PALETTE.CinzaClaro,
+    },
+    multilineInput: { height: 100, textAlignVertical: "top", paddingTop: 15 },
     button: {
-        backgroundColor: "#5D9B9B",
-        borderRadius: 100,
+        flexDirection: "row",
+        backgroundColor: PALETTE.VerdeAgua,
+        borderRadius: 30,
+        padding: 15,
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 8,
+    },
+    buttonText: {
+        color: PALETTE.Branco,
+        fontSize: 20,
+        fontFamily: "BebasNeue_400Regular",
+        marginLeft: 10,
+    },
+    row: { flexDirection: "row", justifyContent: "space-between" },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: "flex-end",
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
+    },
+    modalContainer: {
+        height: "50%",
+        backgroundColor: PALETTE.AzulEscuro,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+    },
+    modalTitle: {
+        color: PALETTE.Branco,
+        fontSize: 22,
+        fontFamily: "BebasNeue_400Regular",
+        textAlign: "center",
+        marginBottom: 20,
+    },
+    clientItem: {
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: "rgba(255, 255, 255, 0.2)",
+    },
+    clientItemText: {
+        color: PALETTE.Branco,
+        fontSize: 16,
+        fontFamily: "Montserrat_400Regular",
+        textAlign: "center",
+    },
+    modalCloseButton: {
+        backgroundColor: PALETTE.LaranjaPrincipal,
+        borderRadius: 25,
         padding: 15,
         alignItems: "center",
         marginTop: 20,
     },
-    buttonText: {
-        fontFamily: "BebasNeue",
-        fontSize: 20,
-        color: "#fff",
+    modalCloseButtonText: {
+        color: PALETTE.Branco,
+        fontSize: 16,
+        fontFamily: "BebasNeue_400Regular",
     },
-    pickerWrapper: {
-        backgroundColor: 'rgba(42, 77, 105, 0.35)',
-        borderRadius: 5,
-        marginBottom: 10,
-    },
-    picker: {
-        color: '#F5F5F5',
-    }
+    emptyText: { color: PALETTE.CinzaClaro, textAlign: "center", marginTop: 20, fontFamily: "Montserrat_400Regular" },
 });
 
 export default AddNotaPage;

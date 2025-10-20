@@ -312,7 +312,7 @@ const ChartsScreen = () => {
                 <View style={styles.sectionHeader}>
                     <TouchableOpacity onPress={() => router.back()}>
                         <AntDesign
-                            name="arrowleft"
+                            name="arrow-left"
                             size={30}
                             color={PALETTE.Branco}
                         />

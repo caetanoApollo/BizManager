@@ -1,6 +1,8 @@
 -- drop database bizmanager;
 select * from usuarios;
--- select * from clientes;
+select * from clientes;
+select * from transacoes_financeiras;
+select * from servicos_agendados;
 
 create database bizmanager;
 use bizmanager;
@@ -101,14 +103,5 @@ CREATE TABLE IF NOT EXISTS configuracoes (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 );
 
--- Tabela para logs de integração com APIs externas --
-CREATE TABLE IF NOT EXISTS logs_api (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario_id INT NOT NULL,
-    api VARCHAR(50) NOT NULL,  -- Ex: 'receita_federal', 'google_calendar'
-    acao VARCHAR(100) NOT NULL,  -- Ex: 'consulta_cnpj', 'agendamento'
-    status ENUM('sucesso', 'falha') NOT NULL,
-    mensagem TEXT,
-    data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-);
+ALTER TABLE configuracoes
+ADD COLUMN push_token VARCHAR(255) NULL;

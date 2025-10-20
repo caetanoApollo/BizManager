@@ -4,6 +4,8 @@ const cors = require('cors');
 const db = require('./config/db');
 const swaggerUi = require('swagger-ui-express'); 
 const swaggerSpec = require('./config/swaggerConfig');
+const cron = require('node-cron'); 
+const { checkLowStockAndSendNotifications } = require('./services/notificationService');
 
 const app = express();
 app.use(cors());
@@ -39,6 +41,11 @@ app.use('/api', scheduledServiceRoutes);
 
 const configRouter = require('./routers/configRouter');
 app.use('/api', configRouter);
+
+cron.schedule('0 9 * * *', () => { 
+    console.log('Executando verificação de estoque baixo agendada (09:00h)...');
+    checkLowStockAndSendNotifications();
+});
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); 
 
