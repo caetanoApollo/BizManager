@@ -188,7 +188,7 @@ Antes de começar, garanta que você tem instalado:
         ```
     * **Variável de Ambiente (API):**
         * Verifique o arquivo `client/app/services/api.ts` (ou onde sua `BASE_URL` da API é definida).
-        * A `BASE_URL` está configurada como `http://192.168.2.119:3001`.
+        * A `BASE_URL` está configurada como `http://localhost:3001`.
         * **Para desenvolvimento local (emulador/navegador na mesma máquina que o backend):** Mude para `http://localhost:3001`.
         * **Para testes em dispositivo físico na mesma rede Wi-Fi:** Utilize o endereço IP da máquina host onde o servidor backend está rodando (ex: `http://SEU_IP_LOCAL:3001`). Certifique-se de que seu firewall permite conexões nesta porta.
 
