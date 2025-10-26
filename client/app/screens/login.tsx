@@ -60,6 +60,7 @@ export default function LoginPage() {
       }
       router.replace("/screens/main");
     } catch (err: any) {
+      console.error('Erro detalhado no Login:', err); 
       Alert.alert(
         "Erro no Login",
         err.message || "Credenciais inválidas. Tente novamente."

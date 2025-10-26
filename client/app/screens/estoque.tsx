@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import { Nav, Header } from "../components/utils";
 import { useFonts, BebasNeue_400Regular as BebasNeue } from "@expo-google-fonts/bebas-neue";
 import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getProductsByUserId, deleteProduct } from "../services/api";
+import { getProductsByUserId, deleteProduct, getLowStockAlerts } from "../services/api";
 
 const PALETTE = {
   AzulEscuro: "#2A4D69",
@@ -89,6 +89,30 @@ const EstoqueScreen = () => {
       ]
     );
   };
+
+  useEffect(() => {
+    const checkStockAlerts = async () => {
+      if (!loading) {
+        try {
+          const lowStockItems = await getLowStockAlerts();
+
+          if (lowStockItems && lowStockItems.length > 0) {
+            const itemNames = lowStockItems.map(item => item.nome).join(', ');
+            Alert.alert(
+              'Estoque Baixo!',
+              `Os seguintes itens estão com estoque baixo ou zerado: ${itemNames}. Considere reabastecer.`
+            );
+          }
+        } catch (error: any) {
+          console.warn("Não foi possível verificar o estoque baixo:", error.message || error);
+          // Alert.alert("Aviso", "Não foi possível verificar o estoque baixo no momento.");
+        }
+      }
+    };
+
+    checkStockAlerts();
+
+  }, [loading]);
 
   const renderItem = ({ item }: { item: Product }) => {
     const isLowStock = item.quantidade <= item.quantidade_minima;

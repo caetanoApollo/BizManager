@@ -1,4 +1,4 @@
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+export const BASE_URL = 'http://192.168.2.202:3001';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
@@ -285,15 +285,6 @@ export const getInvoiceById = async (id: number) => {
 };
 
 // --- Notificações ---
-// export const savePushToken = async (token: string): Promise<any> => {
-//     try {
-//         const response = await apiFetch('/config/token', {
-//             method: 'PUT',
-//             body: JSON.stringify({ token }),
-//         });
-//         return response;
-//     } catch (error: any) {
-//         console.error('Erro ao salvar token de notificação:', error?.message ?? error);
-//         throw error;
-//     }
-// };
+export const getLowStockAlerts = async (): Promise<{ id: number; nome: string; quantidade: number; quantidade_minima: number }[]> => {
+    return apiFetch('/api/stock/low-alerts');
+};

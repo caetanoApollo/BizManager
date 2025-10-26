@@ -125,4 +125,27 @@ router.put(
  */
 router.delete("/products/:id", authMiddleware, productController.deleteProduct);
 
+/**
+ * @swagger
+ * /stock/low-alerts:
+ *   get:
+ *     summary: Verifica produtos com estoque baixo ou zerado
+ *     tags: [Produtos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID do usuário
+ *     responses:
+ *       200:
+ *         description: Lista de produtos com estoque baixo ou zerado.
+ *       404:
+ *         description: Usuário não encontrado.
+ */
+router.get('/stock/low-alerts', authMiddleware, productController.getLowStockAlerts);
+
 module.exports = router;

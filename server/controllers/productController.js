@@ -69,3 +69,35 @@ exports.deleteProduct = async (req, res) => {
         res.status(500).json({ error: 'Erro ao excluir produto.' });
     }
 };
+
+exports.getLowStockAlerts = async (req, res) => {
+    const usuario_id = req.user.id; 
+
+    if (!usuario_id) {
+        return res.status(401).json({ error: 'Usuário não autenticado.' });
+    }
+
+    try {
+        const [lowStockProducts] = await db.query(`
+            SELECT
+                p.id,
+                p.nome,
+                p.quantidade,
+                p.quantidade_minima
+            FROM
+                produtos p
+            JOIN
+                configuracoes c ON p.usuario_id = c.usuario_id
+            WHERE
+                p.usuario_id = ?
+                AND p.quantidade <= p.quantidade_minima
+                AND c.notificacoes_estoque = TRUE
+        `, [usuario_id]);
+
+        res.status(200).json(lowStockProducts);
+
+    } catch (err) {
+        console.error('Erro ao buscar alertas de estoque baixo:', err);
+        res.status(500).json({ error: 'Erro ao buscar alertas de estoque.' });
+    }
+};

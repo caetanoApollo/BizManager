@@ -4,8 +4,6 @@ const cors = require('cors');
 const db = require('./config/db');
 const swaggerUi = require('swagger-ui-express'); 
 const swaggerSpec = require('./config/swaggerConfig');
-const cron = require('node-cron'); 
-const { checkLowStockAndSendNotifications } = require('./services/notificationService');
 
 const app = express();
 app.use(cors());
@@ -20,6 +18,11 @@ app.use(express.json());
         process.exit(1);
     }
 })();
+
+app.get('/api/ping', (req, res) => {
+    console.log('Recebido PING!'); 
+    res.status(200).send('ping');
+});
 
 const userRoutes = require('./routers/userRouter');
 app.use('/api', userRoutes);
@@ -41,11 +44,6 @@ app.use('/api', scheduledServiceRoutes);
 
 const configRouter = require('./routers/configRouter');
 app.use('/api', configRouter);
-
-cron.schedule('0 9 * * *', () => { 
-    console.log('Executando verificação de estoque baixo agendada (09:00h)...');
-    checkLowStockAndSendNotifications();
-});
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); 
 

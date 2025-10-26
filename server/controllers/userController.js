@@ -1,3 +1,4 @@
+require('dotenv').config();
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -80,7 +81,6 @@ exports.registerUser = async (req, res) => {
         res.status(500).json({ error: 'Erro ao cadastrar usuário.' });
     }
 };
-console.timeEnd('cadastro');
 
 exports.loginUser = async (req, res) => {
     const { identificador, senha } = req.body;
