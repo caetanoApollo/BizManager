@@ -1,4 +1,4 @@
-export const BASE_URL = 'http://192.168.2.202:3001';
+export const BASE_URL = 'http://IP_DO_PC:3001';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {

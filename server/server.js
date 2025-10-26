@@ -45,6 +45,9 @@ app.use('/api', scheduledServiceRoutes);
 const configRouter = require('./routers/configRouter');
 app.use('/api', configRouter);
 
+const googleRoutes = require('./routers/googleRouter');
+app.use('/api', googleRoutes);
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); 
 
 const PORT = process.env.PORT || 3001;
