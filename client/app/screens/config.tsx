@@ -29,9 +29,12 @@ import {
   apiFetch,
 } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as AuthSession from "expo-auth-session";
 import { useRouter, useFocusEffect } from "expo-router";
-import * as WebBrowser from 'expo-web-browser';
-import { useAuthRequest, makeRedirectUri, ResponseType, AuthRequestPromptOptions } from 'expo-auth-session';
+import * as WebBrowser from "expo-web-browser";
+import {
+  ResponseType,
+} from "expo-auth-session";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -45,9 +48,9 @@ const PALETTE = {
 };
 
 const discovery = {
-  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-  tokenEndpoint: 'https://oauth2.googleapis.com/token',
-  revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
+  authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+  tokenEndpoint: "https://oauth2.googleapis.com/token",
+  revocationEndpoint: "https://oauth2.googleapis.com/revoke",
 };
 
 const SettingsPage = () => {
@@ -66,67 +69,84 @@ const SettingsPage = () => {
   const [authRequestLoading, setAuthRequestLoading] = useState(false);
   const [fontsLoaded] = useFonts({ BebasNeue: BebasNeue_400Regular, Montserrat: Montserrat_400Regular });
 
-  const clientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '134585370245-b9fdacgtn2lac2oimp7ap4t9v8iibrab.apps.googleusercontent.com';
+  const clientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  if (!clientId) {
+    throw new Error("ERRO CRÍTICO: EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID não está definido no .env.");
+  }
 
-  const redirectUri = "https://auth.expo.io/@caetano.apollo/bizmanager";
-  console.log("Redirect URI usado:", redirectUri);
+  const redirectUri = AuthSession.makeRedirectUri();
 
-  const [request, response, promptAsync] = useAuthRequest(
+  console.log("Redirect URI usado (Automático):", redirectUri);
+  console.log("Verifique se este URI está no Google Cloud Console!");
+
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
       clientId: clientId,
-      scopes: ['openid', 'profile', 'email', 'https://www.googleapis.com/auth/calendar.events'],
       redirectUri: redirectUri,
       responseType: ResponseType.Code,
+      scopes: ['openid', 'profile', 'email', 'https://www.googleapis.com/auth/calendar.events'],
       extraParams: {
         access_type: 'offline',
-        prompt: 'consent',
+        prompt: 'consent'
       },
     },
     discovery
   );
 
-  useEffect(() => {
-    const handleAuthResponse = async () => {
+  console.log("Request configurado:", !!request);
+  const exchangeCode = async (code: string) => {
+    if (!userId) {
+      console.warn("UserID não encontrado ao tentar trocar o código.");
+      Alert.alert("Erro", "ID do usuário não encontrado. Tente novamente.");
       setAuthRequestLoading(false);
-      if (response?.type === 'success') {
-        const { code } = response.params;
-        console.log('Código de Autorização Recebido (via Proxy):', code);
-        setLoading(true);
-        try {
-          if (!userId) throw new Error("ID do usuário não encontrado para troca de código.");
+      return;
+    }
 
-          console.log(`Enviando código para backend (userId: ${userId}, redirectUri: ${redirectUri})`);
-          await apiFetch(`/api/google/exchange-code`, {
-            method: 'POST',
-            body: JSON.stringify({ code: code, userId: userId, redirectUri: redirectUri }),
-          });
-          Alert.alert('Sucesso', 'Google Calendar conectado!');
-          setIsCalendarConnected(true);
-          setIntegracaoGoogleCalendar(true);
-        } catch (error: any) {
-          console.error("Erro ao trocar código por token no backend:", error);
-          Alert.alert('Erro', 'Falha ao finalizar conexão com Google Calendar: ' + (error.message || 'Erro desconhecido'));
-          setIsCalendarConnected(false);
-          setIntegracaoGoogleCalendar(false);
-        } finally {
-          setLoading(false);
-        }
-      } else if (response?.type === 'error') {
-        console.error('Erro na autenticação Google:', response.params.error_description || response.params.error || 'Erro desconhecido');
-        Alert.alert('Erro', 'Falha na autenticação com Google: ' + (response.params.error_description || response.params.error || 'Tente novamente'));
-        setIsCalendarConnected(false);
-        setIntegracaoGoogleCalendar(false);
-      } else if (response?.type === 'cancel' || response?.type === 'dismiss') {
+    console.log("🚀 Trocando código pelo token...");
+    setLoading(true);
+    setAuthRequestLoading(false);
+
+    try {
+      const apiResult = await apiFetch(`/api/google/exchange-code`, {
+        method: 'POST',
+        body: JSON.stringify({ code, userId, redirectUri }),
+      });
+
+      console.log("✅ Resposta do backend:", apiResult);
+      Alert.alert("Sucesso", "Google Calendar conectado!");
+      setIsCalendarConnected(true);
+      setIntegracaoGoogleCalendar(true);
+      await loadUserDataAndConfig();
+
+    } catch (err: any) {
+      console.error("❌ Erro ao trocar código:", err);
+      Alert.alert("Erro", "Falha ao finalizar conexão: " + err.message);
+      setIsCalendarConnected(false);
+      setIntegracaoGoogleCalendar(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (response) {
+      console.log("Response recebido do AuthSession:", response.type);
+
+      setAuthRequestLoading(false);
+
+      if (response.type === "success") {
+        const { code } = response.params;
+        console.log("Código de autorização obtido automaticamente!");
+        exchangeCode(code);
+      } else if (response.type === "error") {
+        console.error("❌ Erro no AuthSession:", response.error);
+        Alert.alert("Erro", `Falha na autenticação: ${response.error?.message || 'Tente novamente.'}`);
+      } else if (response.type === "cancel") {
         console.log("Autenticação cancelada pelo usuário.");
         setIntegracaoGoogleCalendar(isCalendarConnected);
-      } else if (response) {
-        console.log("Resposta da autenticação recebida (Proxy):", response.type);
       }
-    };
-
-    handleAuthResponse();
-  }, [response, userId, redirectUri]);
-
+    }
+  }, [response, userId]);
 
   const loadUserDataAndConfig = useCallback(async () => {
     try {
@@ -160,7 +180,7 @@ const SettingsPage = () => {
         setIsCalendarConnected(hasRefreshToken);
 
         if (calendarIntegrationEnabled && !hasRefreshToken) {
-          console.warn("Inconsistência: Integração Google marcada como ativa, mas sem refresh token. Desmarcando visualmente.");
+          console.warn("Inconsistência: Integração Google marcada como ativa, mas sem refresh token.");
           setIntegracaoGoogleCalendar(false);
           setIsCalendarConnected(false);
         }
@@ -203,10 +223,9 @@ const SettingsPage = () => {
             onPress: async () => {
               setLoading(true);
               try {
-                // await apiFetch(`/api/google/disconnect`, { method: 'POST', body: JSON.stringify({ userId }) }); // Implementar no backend
+                await apiFetch(`/api/google/disconnect`, { method: 'POST', body: JSON.stringify({ userId }) });
                 await updateConfigs(userId, notificacoesEstoque, false);
-                console.log("Solicitação de desconexão enviada ao backend (simulado).");
-
+                console.log("Solicitação de desconexão enviada ao backend.");
                 Alert.alert("Sucesso", "Google Calendar desconectado.");
                 setIsCalendarConnected(false);
                 setIntegracaoGoogleCalendar(false);
@@ -220,18 +239,20 @@ const SettingsPage = () => {
           },
         ]
       );
-    } else {
+    }
+    else {
       if (!request) {
-        Alert.alert("Erro", "Não foi possível iniciar a autenticação. Tente novamente mais tarde.");
-        console.error("AuthRequest não está pronto:", request);
+        Alert.alert("Erro", "Não foi possível iniciar a autenticação. Tente recarregar a tela.");
         return;
       }
+
       setAuthRequestLoading(true);
+
       try {
         await promptAsync();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Erro ao chamar promptAsync:", error);
-        Alert.alert("Erro", "Ocorreu um erro ao tentar iniciar a conexão com o Google.");
+        Alert.alert("Erro", "Não foi possível abrir a tela de login: " + error.message);
         setAuthRequestLoading(false);
       }
     }
@@ -257,7 +278,7 @@ const SettingsPage = () => {
 
       await Promise.all([
         Object.keys(userDataToUpdate).length > 0 ? updateUserData(userId, userDataToUpdate) : Promise.resolve(),
-        updateConfigs(userId, notificacoesEstoque, integracaoGoogleCalendar)
+        updateConfigs(userId, notificacoesEstoque, isCalendarConnected && integracaoGoogleCalendar)
       ]);
 
       if (userDataToUpdate.nome) {
@@ -285,6 +306,7 @@ const SettingsPage = () => {
     if (cnpj.length > 15) cnpj = cnpj.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5");
     return cnpj;
   }
+
   const handleCNPJChange = (value: string) => {
     setCnpj(formatCNPJ(value));
   };
@@ -352,6 +374,7 @@ const SettingsPage = () => {
                   onValueChange={setNotificacoesEstoque}
                   value={notificacoesEstoque}
                   disabled={saving || authRequestLoading}
+                  style={{ marginTop: 12 }}
                 />
               </View>
 
@@ -363,11 +386,15 @@ const SettingsPage = () => {
                   trackColor={{ false: "#767577", true: PALETTE.VerdeAgua }}
                   thumbColor={integracaoGoogleCalendar ? PALETTE.Branco : "#f4f3f4"}
                   value={integracaoGoogleCalendar}
+                  style={{ marginTop: 12 }}
                   onValueChange={(newValue) => {
+                    setIntegracaoGoogleCalendar(newValue);
+
                     if (newValue && !isCalendarConnected) {
                       handleCalendarConnectToggle();
                     } else if (!newValue && isCalendarConnected) {
-                      Alert.alert("Desconectar", "Use o botão 'Desconectar Google Calendar' abaixo para remover a integração.");
+                      handleCalendarConnectToggle();
+                    } else if (newValue && isCalendarConnected) {
                     }
                   }}
                   disabled={saving || authRequestLoading}
@@ -380,7 +407,7 @@ const SettingsPage = () => {
                   { backgroundColor: isCalendarConnected ? PALETTE.VermelhoErro : PALETTE.VerdeAgua, marginTop: 5 },
                   (!request || authRequestLoading || saving) && styles.buttonDisabled
                 ]}
-                onPress={handleCalendarConnectToggle}
+                onPress={handleCalendarConnectToggle} 
                 disabled={!request || authRequestLoading || saving}
               >
                 {authRequestLoading ? (
@@ -404,9 +431,9 @@ const SettingsPage = () => {
               </TouchableOpacity>
             </View>
           )}
+          <Nav style={styles.nav} />
         </ScrollView>
       </KeyboardAvoidingView>
-      <Nav style={styles.nav} />
     </LinearGradient>
   );
 };
@@ -497,8 +524,8 @@ const styles = StyleSheet.create({
   },
   nav: {
     position: 'absolute',
-    bottom: 20,
-    left: 0,
+    bottom: 10,
+    left: 20,
     right: 0,
     alignItems: 'center',
     zIndex: 10

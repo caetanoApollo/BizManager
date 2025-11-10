@@ -1,4 +1,4 @@
-export const BASE_URL = 'http://IP_DO_PC:3001';
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
@@ -21,7 +21,10 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
         headers,
     });
 
-    const data = await response.json();
+    // Tenta fazer o parse do JSON. Se não houver corpo (ex: 204 No Content), retorna um objeto vazio.
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+
     if (!response.ok) {
         throw new Error(data.error || 'Ocorreu um erro na requisição.');
     }
@@ -35,19 +38,33 @@ export const login = async (identificador: string, senha: string) => {
     });
 
     if (resposta.token) {
-        await AsyncStorage.setItem('userToken', resposta.token);
+        // ATENÇÃO: O seu login.tsx salva como 'token', mas o apiFetch lê 'token'
+        // O seu login.tsx também salva 'userToken'
+        // Vamos garantir que 'token' seja salvo, pois é o que o apiFetch usa.
+        await AsyncStorage.setItem('token', resposta.token);
     }
 
     return resposta;
 };
 
-export const cadastro = async (nome: string, email: string, telefone: string, cnpj: string, senha: string, fotoPerfilUri?: string) => {
+// --- CADASTRO ATUALIZADO ---
+export const cadastro = async (
+    nome: string, 
+    email: string, 
+    telefone: string, 
+    cnpj: string, 
+    senha: string, 
+    inscricao_municipal?: string, 
+    codigo_municipio?: string
+) => {
     const body = {
         nome,
         email,
         telefone,
-        cnpj,
+        cnpj, // O backend vai limpar a máscara
         senha,
+        inscricao_municipal,
+        codigo_municipio
     };
 
     const response = await apiFetch('/api/cadastro', {
@@ -65,11 +82,28 @@ export const forgotPassword = async (email: string) => {
     });
 };
 
-// --- Clientes ---
-export const createClient = (usuario_id: number, nome: string, email: string, telefone: string, observacao: string) => {
+// --- CLIENTES ATUALIZADOS ---
+// Objeto com todos os campos (incluindo os opcionais de NF-e)
+interface ClientData {
+    usuario_id: number;
+    nome: string;
+    email: string;
+    telefone: string;
+    observacoes: string;
+    cnpj?: string;
+    endereco_logradouro?: string;
+    endereco_numero?: string;
+    endereco_complemento?: string;
+    endereco_bairro?: string;
+    endereco_cep?: string;
+    endereco_uf?: string;
+    endereco_codigo_municipio?: string;
+}
+
+export const createClient = (clientData: Omit<ClientData, 'id' | 'data_cadastro'>) => {
     return apiFetch('/api/clients', {
         method: 'POST',
-        body: JSON.stringify({ usuario_id, nome, email, telefone, observacoes: observacao }),
+        body: JSON.stringify(clientData),
     });
 };
 
@@ -77,22 +111,21 @@ export const getClients = (usuario_id: number) => {
     return apiFetch(`/api/clients/user/${usuario_id}`);
 };
 
-
 export const getClientById = (clienteId: number) => {
     return apiFetch(`/api/clients/${clienteId}`);
 };
 
-export const updateClient = (clienteId: number, usuario_id: number, nome: string, email: string, telefone: string, observacao: string) => {
+export const updateClient = (clienteId: number, clientData: Omit<ClientData, 'id' | 'data_cadastro'>) => {
     return apiFetch(`/api/clients/${clienteId}`, {
         method: 'PUT',
-        body: JSON.stringify({ usuario_id, nome, email, telefone, observacoes: observacao }),
+        body: JSON.stringify(clientData),
     });
 };
 
-export const deleteClient = (id: number, usuario_id: number) => {
+export const deleteClient = (id: number) => {
+    // O backend agora pega o usuario_id do token, não precisa enviar no body
     return apiFetch(`/api/clients/${id}`, {
         method: 'DELETE',
-        body: JSON.stringify({ usuario_id }),
     });
 };
 
@@ -102,7 +135,16 @@ export const getUserProfile = (usuario_id: number) => {
     return apiFetch(`/api/users/${usuario_id}`);
 };
 
-export const updateUserData = (usuario_id: number, userData: { nome?: string; email?: string; telefone?: string; cnpj?: string; senha?: string }) => {
+// --- ATUALIZADO para incluir campos fiscais ---
+export const updateUserData = (usuario_id: number, userData: { 
+    nome?: string; 
+    email?: string; 
+    telefone?: string; 
+    cnpj?: string; 
+    senha?: string;
+    inscricao_municipal?: string;
+    codigo_municipio?: string;
+}) => {
     return apiFetch(`/api/users/${usuario_id}`, {
         method: 'PUT',
         body: JSON.stringify(userData),
@@ -162,9 +204,10 @@ export const updateTransaction = (
 };
 
 export const deleteTransaction = (id: number, usuario_id: number) => {
+    // O backend espera o usuario_id no token, não no body
     return apiFetch(`/api/transactions/${id}`, {
         method: 'DELETE',
-        body: JSON.stringify({ usuario_id }),
+        // body: JSON.stringify({ usuario_id }), // Removido, pois o authMiddleware já faz isso
     });
 };
 
@@ -230,22 +273,49 @@ export const updateProduct = (id: number, usuario_id: number, nome: string, desc
 };
 
 export const deleteProduct = (id: number, usuario_id: number) => {
+    // O backend espera o usuario_id no token, não no body
     return apiFetch(`/api/products/${id}`, {
         method: 'DELETE',
-        body: JSON.stringify({ usuario_id }),
+        // body: JSON.stringify({ usuario_id }), // Removido
     });
 };
 
-// --- Notas Fiscais ---
+// ===================================================================
+// SEÇÃO DE NOTAS FISCAIS ATUALIZADA
+// ===================================================================
+
+// Interface para os dados do formulário
+interface TomadorPayload {
+    cnpj: string;
+    razao_social: string;
+    email: string;
+    endereco: {
+        logradouro: string;
+        numero: string;
+        bairro: string;
+        codigo_municipio: string;
+        uf: string;
+        cep: string;
+    };
+}
+
+interface ServicoPayload {
+    aliquota: number;
+    discriminacao: string;
+    valor_servicos: number;
+    item_lista_servico: string;
+    codigo_tributario_municipio: string;
+}
+
+/**
+ * Cria uma nova nota fiscal chamando a API da FocusNFE.
+ * O usuario_id (Prestador) é obtido pelo token no backend.
+ */
 export const createInvoice = async (invoiceData: {
-    usuario_id: number;
     cliente_id?: number;
-    numero: string;
-    servico_fornecido: string;
-    cnpj_tomador: string;
-    data_emissao: string;
-    valor: number;
-    status: 'emitida' | 'cancelada';
+    data_emissao: string; // Formato YYYY-MM-DD
+    tomador: TomadorPayload;
+    servico: ServicoPayload;
 }) => {
     return apiFetch('/api/invoices', {
         method: 'POST',
@@ -253,38 +323,41 @@ export const createInvoice = async (invoiceData: {
     });
 };
 
+/**
+ * Busca as notas fiscais do usuário logado (armazenadas localmente no DB).
+ */
 export const getInvoices = async (usuario_id: number) => {
     return apiFetch(`/api/invoices/${usuario_id}`);
 };
 
-export const updateInvoice = async (invoiceId: number, invoiceData: {
-    usuario_id: number;
-    cliente_id?: number;
-    numero: string;
-    servico_fornecido: string;
-    cnpj_tomador: string;
-    data_emissao: string;
-    valor: number;
-    status: 'emitida' | 'cancelada';
-}) => {
-    return apiFetch(`/api/invoices/${invoiceId}`, {
-        method: 'PUT',
-        body: JSON.stringify(invoiceData),
-    });
-};
-
-export const deleteInvoice = async (id: number, usuario_id: number) => {
-    return apiFetch(`/api/invoices/${id}`, {
-        method: 'DELETE',
-        body: JSON.stringify({ usuario_id }),
-    });
-};
-
+/**
+ * Busca os detalhes de uma nota fiscal específica (do DB local).
+ */
 export const getInvoiceById = async (id: number) => {
-    return apiFetch(`/api/invoices/${id}`);
+    return apiFetch(`/api/invoices/details/${id}`);
 };
+
+/**
+ * Solicita o cancelamento de uma nota fiscal (chama a API FocusNFE).
+ */
+export const cancelInvoice = async (id: number) => {
+    return apiFetch(`/api/invoices/cancel/${id}`, {
+        method: 'POST',
+    });
+};
+
+/**
+ * Consulta o status mais recente de uma nota (chama a API FocusNFE).
+ */
+export const consultInvoiceStatus = async (id: number) => {
+    return apiFetch(`/api/invoices/consult/${id}`, {
+        method: 'POST',
+    });
+};
+
 
 // --- Notificações ---
 export const getLowStockAlerts = async (): Promise<{ id: number; nome: string; quantidade: number; quantidade_minima: number }[]> => {
+    // O backend pega o usuario_id do token
     return apiFetch('/api/stock/low-alerts');
 };

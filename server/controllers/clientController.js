@@ -1,19 +1,39 @@
+/*
+ * ARQUIVO: server/controllers/clientController.js (Atualizado)
+ *
+ * O que mudou:
+ * 1. `createClient`: Recebe e insere todos os novos campos (cnpj, endereco_...).
+ * 2. `updateClient`: Recebe e atualiza todos os novos campos.
+ * 3. `getClientById` e `getClientsByUserId`: Já retornavam `*`, então estão prontos.
+ */
 const db = require('../config/db');    
 
 exports.createClient = async (req, res) => {
-    const { usuario_id, nome, email, telefone, observacoes } = req.body;
+    const { 
+        usuario_id, nome, email, telefone, observacoes, 
+        cnpj, endereco_logradouro, endereco_numero, endereco_complemento, 
+        endereco_bairro, endereco_cep, endereco_uf, endereco_codigo_municipio 
+    } = req.body;
 
     if (!usuario_id || !nome || !telefone) {
-        return res.status(400).json({ error: 'Nome de usuário e telefone são obrigatórios para o cliente.' });
+        return res.status(400).json({ error: 'ID do Usuário, Nome e Telefone são obrigatórios para o cliente.' });
     }
 
     try {
         const [result] = await db.query(
-            'INSERT INTO clientes (usuario_id, nome, email, telefone, observacoes) VALUES (?, ?, ?, ?, ?)',
-            [usuario_id, nome, email || null, telefone, observacoes || null]
+            `INSERT INTO clientes (
+                usuario_id, nome, email, telefone, observacoes, 
+                cnpj, endereco_logradouro, endereco_numero, endereco_complemento, 
+                endereco_bairro, endereco_cep, endereco_uf, endereco_codigo_municipio
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                usuario_id, nome, email || null, telefone, observacoes || null,
+                cnpj || null, endereco_logradouro || null, endereco_numero || null, endereco_complemento || null,
+                endereco_bairro || null, endereco_cep || null, endereco_uf || null, endereco_codigo_municipio || null
+            ]
         );
         console.log(`Novo cliente cadastrado: ID ${result.insertId}, Nome ${nome}`);
-        res.status(201).json({ id: result.insertId, usuario_id, nome, email, telefone, observacoes });
+        res.status(201).json({ id: result.insertId, ...req.body });
     } catch (err) {
         console.error('Erro ao cadastrar cliente:', err);
         res.status(500).json({ error: 'Erro ao cadastrar cliente.' });
@@ -49,7 +69,11 @@ exports.getClientById = async (req, res) => {
 
 exports.updateClient = async (req, res) => {
     const { id } = req.params; 
-    const { nome, email, telefone, observacoes, usuario_id } = req.body; 
+    const { 
+        usuario_id, nome, email, telefone, observacoes,
+        cnpj, endereco_logradouro, endereco_numero, endereco_complemento, 
+        endereco_bairro, endereco_cep, endereco_uf, endereco_codigo_municipio
+    } = req.body; 
 
     if (!nome || !telefone || !usuario_id) {
         return res.status(400).json({ error: 'Nome, telefone e ID do usuário são obrigatórios para atualização do cliente.' });
@@ -62,8 +86,17 @@ exports.updateClient = async (req, res) => {
         }
 
         const [result] = await db.query(
-            'UPDATE clientes SET nome = ?, email = ?, telefone = ?, observacoes = ? WHERE id = ?',
-            [nome, email || null, telefone, observacoes || null, id]
+            `UPDATE clientes SET 
+                nome = ?, email = ?, telefone = ?, observacoes = ?, 
+                cnpj = ?, endereco_logradouro = ?, endereco_numero = ?, endereco_complemento = ?, 
+                endereco_bairro = ?, endereco_cep = ?, endereco_uf = ?, endereco_codigo_municipio = ?
+             WHERE id = ?`,
+            [
+                nome, email || null, telefone, observacoes || null,
+                cnpj || null, endereco_logradouro || null, endereco_numero || null, endereco_complemento || null,
+                endereco_bairro || null, endereco_cep || null, endereco_uf || null, endereco_codigo_municipio || null,
+                id
+            ]
         );
 
         if (result.affectedRows === 0) {
@@ -79,10 +112,11 @@ exports.updateClient = async (req, res) => {
 
 exports.deleteClient = async (req, res) => {
     const { id } = req.params; 
-    const { usuario_id } = req.body; 
+    // O usuario_id deve vir do token de autenticação, não do body
+    const usuario_id = req.user.id; 
 
     if (!usuario_id) {
-        return res.status(400).json({ error: 'ID do usuário é obrigatório para exclusão do cliente.' });
+        return res.status(401).json({ error: 'Usuário não autenticado.' });
     }
 
     try {

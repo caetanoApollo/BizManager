@@ -25,11 +25,19 @@ const userSchema = Joi.object({
         'string.max': 'Telefone deve ter no máximo {#limit} caracteres.',
         'any.required': 'Telefone é obrigatório.'
     }),
-    cnpj: Joi.string().length(18).required().messages({ 
+    cnpj: Joi.string().min(14).max(18).required().messages({ // Aceita 14 (limpo) ou 18 (com máscara)
         'string.base': 'CNPJ deve ser texto.',
         'string.empty': 'CNPJ não pode ser vazio.',
-        'string.length': 'CNPJ deve ter {#limit} caracteres.',
         'any.required': 'CNPJ é obrigatório.'
+    }),
+    // Campos fiscais (opcionais no cadastro, mas permitidos)
+    inscricao_municipal: Joi.string().max(50).allow(null, '').messages({
+        'string.base': 'Inscrição Municipal deve ser texto.',
+        'string.max': 'Inscrição Municipal deve ter no máximo {#limit} caracteres.',
+    }),
+    codigo_municipio: Joi.string().max(20).allow(null, '').messages({
+        'string.base': 'Código do Município deve ser texto.',
+        'string.max': 'Código do Município deve ter no máximo {#limit} caracteres.',
     })
 });
 
@@ -44,6 +52,9 @@ const userLoginSchema = Joi.object({
     })
 });
 
+// ===================================================================
+// CORREÇÃO APLICADA AQUI
+// ===================================================================
 const clientSchema = Joi.object({
     usuario_id: Joi.number().integer().positive().required().messages({
         'number.base': 'ID do usuário deve ser um número.',
@@ -68,11 +79,24 @@ const clientSchema = Joi.object({
         'string.max': 'Telefone do cliente deve ter no máximo {#limit} caracteres.',
         'any.required': 'Telefone do cliente é obrigatório.'
     }),
-    observacoes: Joi.string().max(255).allow(null, '').messages({
+    observacoes: Joi.string().max(1000).allow(null, '').messages({ // Aumentei o limite para 1000
         'string.base': 'Observações do cliente deve ser texto.',
         'string.max': 'Observações do cliente deve ter no máximo {#limit} caracteres.'
-    })
+    }),
+
+    // --- CAMPOS ADICIONADOS PARA NF-e (TOMADOR) ---
+    cnpj: Joi.string().max(18).allow(null, ''),
+    endereco_logradouro: Joi.string().max(255).allow(null, ''),
+    endereco_numero: Joi.string().max(30).allow(null, ''),
+    endereco_complemento: Joi.string().max(100).allow(null, ''),
+    endereco_bairro: Joi.string().max(100).allow(null, ''),
+    endereco_cep: Joi.string().max(10).allow(null, ''),
+    endereco_uf: Joi.string().max(2).allow(null, ''),
+    endereco_codigo_municipio: Joi.string().max(20).allow(null, '')
 });
+// ===================================================================
+// FIM DA CORREÇÃO
+// ===================================================================
 
 const productSchema = Joi.object({
     usuario_id: Joi.number().integer().positive().required(),
@@ -95,24 +119,25 @@ const transactionSchema = Joi.object({
     categoria: Joi.string().max(50).allow(null, '')
 });
 
+// Este schema de validação de NF foi desativado nas rotas (invoiceRouter.js)
+// porque a validação agora é mais complexa e feita no controller.
 const invoiceSchema = Joi.object({
     usuario_id: Joi.number().integer().positive().required(),
     cliente_id: Joi.number().integer().positive().allow(null),
     numero: Joi.string().max(50).required(),
     servico_fornecido: Joi.string().required(),
-    cnpj_tomador: Joi.string().length(18).required(), 
+    cnpj_tomador: Joi.string().max(18).required(), // Aumentado para 18 (com máscara)
     data_emissao: Joi.date().iso().required(), 
     valor: Joi.number().precision(2).positive().required(),
     status: Joi.string().valid('emitida', 'cancelada').default('emitida'),
 });
 
 const scheduledServiceSchema = Joi.object({
-    usuario_id: Joi.number().integer().positive().required(),
     cliente_id: Joi.number().integer().positive().required(),
     titulo: Joi.string().min(3).max(100).required(),
-    descricao: Joi.string().max(255).allow(null, ''),
+    descricao: Joi.string().max(1000).allow(null, ''), // Aumentado limite
     data: Joi.date().iso().required(), 
-    horario: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).required(), 
+    horario: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).required(), // Formato HH:MM
     status: Joi.string().valid('agendado', 'concluido', 'cancelado').default('agendado')
 });
 

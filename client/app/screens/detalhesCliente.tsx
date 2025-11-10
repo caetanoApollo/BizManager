@@ -1,3 +1,10 @@
+/*
+ * ARQUIVO: client/app/screens/detalhesCliente.tsx (Atualizado)
+ *
+ * O que mudou:
+ * 1. Interface `Client` atualizada para incluir todos os novos campos.
+ * 2. Adicionados novos componentes `<InfoRow />` para exibir CNPJ e os dados de Endereço.
+ */
 import React, { useEffect, useState } from "react";
 import {
     View,
@@ -24,12 +31,22 @@ const PALETTE = {
     CinzaClaro: "rgba(255, 255, 255, 0.8)",
 };
 
+// Interface atualizada com todos os campos do DB
 interface Client {
+    id: number;
     nome: string;
     email: string;
     telefone: string;
     observacoes: string;
     data_cadastro: string;
+    cnpj?: string;
+    endereco_logradouro?: string;
+    endereco_numero?: string;
+    endereco_complemento?: string;
+    endereco_bairro?: string;
+    endereco_cep?: string;
+    endereco_uf?: string;
+    endereco_codigo_municipio?: string;
 }
 
 const ClienteDetalhes: React.FC = () => {
@@ -59,7 +76,7 @@ const ClienteDetalhes: React.FC = () => {
         fetchClient();
     }, [clientId]);
     
-    const InfoRow = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
+    const InfoRow = ({ icon, label, value }: { icon: any, label: string, value: string | undefined | null }) => (
         <View style={styles.infoRow}>
             <Feather name={icon} size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
             <View>
@@ -68,6 +85,25 @@ const ClienteDetalhes: React.FC = () => {
             </View>
         </View>
     );
+
+    // Funções de formatação para exibição
+    const formatCpfCnpj = (value: string = "") => {
+        const cleanedValue = value.replace(/\D/g, "");
+        if (cleanedValue.length <= 11) { // CPF
+            return cleanedValue.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+        }
+        // CNPJ
+        return cleanedValue.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+    };
+
+    const formatCEP = (value: string = "") => {
+        const cleanedValue = value.replace(/\D/g, "");
+        if (cleanedValue.length === 8) {
+            return cleanedValue.replace(/(\d{5})(\d{3})/, "$1-$2");
+        }
+        return value;
+    };
+
 
     if (loading || !fontsLoaded) {
         return (
@@ -106,17 +142,27 @@ const ClienteDetalhes: React.FC = () => {
                 <View style={styles.detailsContainer}>
                     <Text style={styles.clientName}>{client.nome}</Text>
                     
+                    <Text style={styles.sectionHeading}>Contato</Text>
                     <InfoRow icon="phone" label="Telefone" value={client.telefone} />
                     <InfoRow icon="mail" label="Email" value={client.email} />
                     <InfoRow icon="calendar" label="Cliente Desde" value={new Date(client.data_cadastro).toLocaleDateString('pt-BR')} />
                     
-                    <Text style={styles.notesTitle}>Observações</Text>
+                    <Text style={styles.sectionHeading}>Dados Fiscais (NF-e)</Text>
+                    <InfoRow icon="hash" label="CPF / CNPJ" value={formatCpfCnpj(client.cnpj)} />
+                    <InfoRow icon="map-pin" label="Logradouro" value={`${client.endereco_logradouro || ''}, ${client.endereco_numero || 's/n'}`} />
+                    <InfoRow icon="layers" label="Bairro" value={client.endereco_bairro} />
+                    <InfoRow icon="send" label="CEP" value={formatCEP(client.endereco_cep)} />
+                    <InfoRow icon="map" label="UF" value={client.endereco_uf} />
+                    <InfoRow icon="map" label="Cód. Município" value={client.endereco_codigo_municipio} />
+
+
+                    <Text style={styles.sectionHeading}>Observações</Text>
                     <Text style={styles.notesValue}>{client.observacoes || 'Nenhuma observação cadastrada.'}</Text>
                 </View>
 
                 <TouchableOpacity 
                     style={styles.editButton} 
-                    onPress={() => router.push({ pathname: '/screens/addCliente', params: { clientId } })}
+                    onPress={() => router.push({ pathname: '/screens/addCliente', params: { clientId: String(client.id) } })}
                 >
                     <Feather name="edit" size={20} color={PALETTE.Branco} />
                     <Text style={styles.editButtonText}>Editar Cliente</Text>
@@ -173,6 +219,17 @@ const styles = StyleSheet.create({
         fontFamily: 'Montserrat_400Regular',
         fontSize: 16,
         color: PALETTE.Branco,
+        flexShrink: 1, // Permite que o texto quebre a linha se for muito longo
+    },
+    sectionHeading: {
+        fontFamily: 'BebasNeue_400Regular',
+        fontSize: 22,
+        color: PALETTE.Branco,
+        marginTop: 10,
+        marginBottom: 15,
+        borderLeftWidth: 3,
+        borderLeftColor: PALETTE.LaranjaPrincipal,
+        paddingLeft: 10,
     },
     notesTitle: {
         fontFamily: 'BebasNeue_400Regular',

@@ -1,3 +1,11 @@
+/*
+ * ARQUIVO: server/controllers/userController.js (Atualizado)
+ *
+ * O que mudou:
+ * 1. `registerUser`: Agora recebe e insere `inscricao_municipal` e `codigo_municipio`.
+ * 2. `updateUserProfile`: Agora permite a atualização de `inscricao_municipal` e `codigo_municipio`.
+ * 3. `getUserProfile`: Agora retorna os novos campos fiscais.
+ */
 require('dotenv').config();
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
@@ -36,43 +44,42 @@ const checkCNPJStatus = async (cnpj) => {
 
 exports.registerUser = async (req, res) => {
     console.log('Iniciando processo de cadastro de usuário...');
-    const { nome, email, senha, telefone, cnpj } = req.body;
-    const cnpjClean = cnpj.replace(/[^\d]/g, '');
-    console.log(cnpjClean);
+    const { nome, email, senha, telefone, cnpj, inscricao_municipal, codigo_municipio } = req.body;
     
-
     if (!nome || !email || !senha || !telefone || !cnpj) {
         console.warn('Tentativa de cadastro com campos obrigatórios faltando.');
         return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
     }
+    
+    const cnpjClean = cnpj.replace(/[^\d]/g, '');
 
     try {
-        console.log(cnpjClean);
+        console.log(`Validando CNPJ: ${cnpjClean}`);
         const cnpjValidation = await checkCNPJStatus(cnpjClean);
         if (!cnpjValidation.valid) {
-            console.log(cnpjClean);
             return res.status(400).json({ error: cnpjValidation.error });
         }
         
-
-        const [existe] = await db.query('SELECT id FROM usuarios WHERE cnpj = ? OR email = ?', [cnpj, email]);
+        const [existe] = await db.query('SELECT id FROM usuarios WHERE cnpj = ? OR email = ?', [cnpjClean, email]);
         if (existe.length > 0) {
             return res.status(409).json({ error: 'Já existe um usuário com este CNPJ ou E-mail.' });
         }
 
         const hashedPassword = await bcrypt.hash(senha, 10);
+        
         const [result] = await db.query(
-            'INSERT INTO usuarios (nome, email, senha, telefone, cnpj) VALUES (?, ?, ?, ?, ?)',
-            [nome, email, hashedPassword, telefone, cnpj]
+            'INSERT INTO usuarios (nome, email, senha, telefone, cnpj, inscricao_municipal, codigo_municipio) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [nome, email, hashedPassword, telefone, cnpjClean, inscricao_municipal || null, codigo_municipio || null]
         );
-        console.log(`Novo usuário cadastrado: ID ${result.insertId}, CNPJ ${cnpj}, E-mail ${email}`);
+        
+        console.log(`Novo usuário cadastrado: ID ${result.insertId}, CNPJ ${cnpjClean}, E-mail ${email}`);
 
         await db.query(
             'INSERT INTO configuracoes (usuario_id, notificacoes_estoque, integracao_google_calendar) VALUES (?, TRUE, FALSE)',
             [result.insertId]
         );
 
-        res.status(201).json({ id: result.insertId, nome, email, telefone, cnpj });
+        res.status(201).json({ id: result.insertId, nome, email, telefone, cnpj: cnpjClean });
     } catch (err) {
         console.error('Erro ao cadastrar usuário:', err);
         if (err.code === 'ER_DUP_ENTRY') {
@@ -110,7 +117,7 @@ exports.loginUser = async (req, res) => {
         const token = jwt.sign(
             { id: usuario.id, email: usuario.email },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '1h' } // Ajuste o tempo de expiração conforme necessário
         );
         console.log(`Login realizado com sucesso para o usuário ID ${usuario.id}, Identificador ${identificador}`);
         res.json({ token, usuario_id: usuario.id, nome: usuario.nome, email: usuario.email, telefone: usuario.telefone, cnpj: usuario.cnpj });
@@ -122,7 +129,7 @@ exports.loginUser = async (req, res) => {
 
 exports.editUser = async (req, res) => {
     const { id } = req.params;
-    const { nome, email, telefone, cnpj, senha } = req.body;
+    const { nome, email, telefone, cnpj, senha, inscricao_municipal, codigo_municipio } = req.body;
 
     try {
         const [rows] = await db.query('SELECT * FROM usuarios WHERE id = ?', [id]);
@@ -135,7 +142,9 @@ exports.editUser = async (req, res) => {
         if (nome) { campos.push('nome = ?'); valores.push(nome); }
         if (email) { campos.push('email = ?'); valores.push(email); }
         if (telefone) { campos.push('telefone = ?'); valores.push(telefone); }
-        if (cnpj) { campos.push('cnpj = ?'); valores.push(cnpj); }
+        if (cnpj) { campos.push('cnpj = ?'); valores.push(cnpj.replace(/[^\d]/g, '')); }
+        if (inscricao_municipal) { campos.push('inscricao_municipal = ?'); valores.push(inscricao_municipal); }
+        if (codigo_municipio) { campos.push('codigo_municipio = ?'); valores.push(codigo_municipio); }
         if (senha) {
             const hashedPassword = await bcrypt.hash(senha, 10);
             campos.push('senha = ?');
@@ -182,6 +191,8 @@ exports.getUserProfile = async (req, res) => {
             email: usuario.email,
             telefone: usuario.telefone,
             cnpj: usuario.cnpj,
+            inscricao_municipal: usuario.inscricao_municipal,
+            codigo_municipio: usuario.codigo_municipio
         });
     } catch (err) {
         console.error('Erro ao buscar perfil do usuário:', err);
@@ -191,7 +202,12 @@ exports.getUserProfile = async (req, res) => {
 
 exports.updateUserProfile = async (req, res) => {
     const { id } = req.params;
-    const { nome, email, telefone, cnpj, senha } = req.body;
+    // Assegura que o usuário só pode editar seu próprio perfil (visto que `authMiddleware` adiciona `req.user.id`)
+    if (req.user.id !== parseInt(id, 10)) {
+         return res.status(403).json({ error: 'Você não tem permissão para editar este usuário.' });
+    }
+    
+    const { nome, email, telefone, cnpj, senha, inscricao_municipal, codigo_municipio } = req.body;
 
     try {
         const [rows] = await db.query('SELECT * FROM usuarios WHERE id = ?', [id]);
@@ -206,7 +222,9 @@ exports.updateUserProfile = async (req, res) => {
         if (nome) { campos.push('nome = ?'); valores.push(nome); }
         if (email) { campos.push('email = ?'); valores.push(email); }
         if (telefone) { campos.push('telefone = ?'); valores.push(telefone); }
-        if (cnpj) { campos.push('cnpj = ?'); valores.push(cnpj); }
+        if (cnpj) { campos.push('cnpj = ?'); valores.push(cnpj.replace(/[^\d]/g, '')); }
+        if (inscricao_municipal) { campos.push('inscricao_municipal = ?'); valores.push(inscricao_municipal); }
+        if (codigo_municipio) { campos.push('codigo_municipio = ?'); valores.push(codigo_municipio); }
         if (senha) {
             const hashedPassword = await bcrypt.hash(senha, 10);
             campos.push('senha = ?');

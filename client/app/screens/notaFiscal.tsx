@@ -1,3 +1,13 @@
+/*
+ * ARQUIVO: notaFiscal.tsx (Atualizado)
+ *
+ * O que mudou:
+ * 1. Importado `cancelInvoice` em vez de `deleteInvoice`.
+ * 2. Atualizada a interface `Invoice` para incluir o `status`.
+ * 3. A função `handleDeleteInvoice` foi renomeada (no código) para
+ * `handleCancelInvoice` e agora chama `cancelInvoice(invoiceId)`.
+ * 4. O ícone de exclusão foi mantido, mas agora aciona o *cancelamento*.
+ */
 import React, { useState, useCallback } from "react";
 import {
   View,
@@ -14,7 +24,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { useFonts, BebasNeue_400Regular as BebasNeue } from "@expo-google-fonts/bebas-neue";
 import { Montserrat_400Regular } from '@expo-google-fonts/montserrat';
 import { Nav, Header } from "../components/utils";
-import { getInvoices } from "../services/api"; 
+import { getInvoices, cancelInvoice } from "../services/api";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PALETTE = {
@@ -27,10 +37,12 @@ const PALETTE = {
   FundoCard: "rgba(255, 255, 255, 0.1)",
 };
 
+// Interface atualizada para refletir os dados do novo banco
 interface Invoice {
   id: number;
   numero: string;
-  tomador_razao_social: string;
+  razao_social_tomador: string; // Campo novo do DB
+  status: string;
 }
 
 const InvoiceScreen = () => {
@@ -45,7 +57,7 @@ const InvoiceScreen = () => {
       const userIdString = await AsyncStorage.getItem('usuario_id');
       if (!userIdString) throw new Error("ID do usuário não encontrado.");
       const usuario_id = Number(userIdString);
-      const fetchedInvoices = await getInvoices(usuario_id); 
+      const fetchedInvoices = await getInvoices(usuario_id);
       setInvoices(fetchedInvoices);
     } catch (error: any) {
       Alert.alert("Erro", error.message || "Não foi possível carregar as notas fiscais.");
@@ -58,22 +70,24 @@ const InvoiceScreen = () => {
     fetchInvoices();
   }, [fetchInvoices]));
 
-  const handleDeleteInvoice = async (invoiceId: number) => {
+  // Função atualizada para CANCELAR em vez de DELETAR
+  const handleCancelInvoice = async (invoiceId: number) => {
     Alert.alert(
-      "Confirmar Exclusão",
-      "Tem certeza que deseja excluir esta nota fiscal?",
+      "Confirmar Cancelamento",
+      "Tem certeza que deseja solicitar o cancelamento desta nota fiscal? Esta ação não pode ser desfeita.",
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: "Voltar", style: "cancel" },
         {
-          text: "Excluir",
+          text: "Cancelar Nota",
           onPress: async () => {
             try {
-              const userIdString = await AsyncStorage.getItem('usuario_id');
-              if (!userIdString) throw new Error("ID do usuário não encontrado.");
-              Alert.alert("Sucesso", "Nota Fiscal excluída com sucesso!");
-              fetchInvoices();
+              // Não precisamos mais do 'usuario_id' aqui, o backend resolve pelo token
+              await cancelInvoice(invoiceId); // Chama a nova função da API
+
+              Alert.alert("Sucesso", "Solicitação de cancelamento enviada!");
+              fetchInvoices(); // Recarrega a lista para mostrar o novo status
             } catch (error: any) {
-              Alert.alert("Erro", error.message || "Erro ao excluir a nota fiscal.");
+              Alert.alert("Erro", error.message || "Erro ao cancelar a nota fiscal.");
             }
           },
           style: 'destructive',
@@ -88,18 +102,24 @@ const InvoiceScreen = () => {
         <MaterialIcons name="folder" size={24} color={PALETTE.VerdeAgua} />
       </View>
       <View style={styles.cardInfo}>
-        <Text style={styles.cardTitle}>{item.numero}</Text>
+        <Text style={styles.cardTitle}>{item.numero || `ID Interno: ${item.id}`}</Text>
         <Text style={styles.cardSubtitle}>
-          Tomador: {item.tomador_razao_social}
+          {item.razao_social_tomador} {/* Usando o novo campo */}
+        </Text>
+        <Text style={[styles.cardStatus, getStatusStyle(item.status)]}>
+          {item.status.toUpperCase()}
         </Text>
       </View>
       <View style={styles.cardActions}>
-        <TouchableOpacity onPress={() => router.push({ pathname:'/screens/detalhesNota', params: { invoiceId: item.id } })}>
+        <TouchableOpacity onPress={() => router.push({ pathname: '/screens/detalhesNota', params: { invoiceId: item.id } })}>
           <AntDesign name="info-circle" size={22} color={PALETTE.CinzaClaro} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDeleteInvoice(item.id)} style={{ marginLeft: 15 }}>
-          <MaterialIcons name="delete-outline" size={22} color={PALETTE.VermelhoErro} />
-        </TouchableOpacity>
+        {/* O botão de "delete" agora chama o cancelamento */}
+        {item.status !== 'cancelado' && ( // Só mostra se não estiver cancelada
+          <TouchableOpacity onPress={() => handleCancelInvoice(item.id)} style={{ marginLeft: 15 }}>
+            <MaterialIcons name="cancel" size={22} color={PALETTE.VermelhoErro} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -139,6 +159,23 @@ const InvoiceScreen = () => {
       <Nav style={styles.navBar} />
     </LinearGradient>
   );
+};
+
+// Função auxiliar para colorir o status
+const getStatusStyle = (status: string) => {
+  switch (status) {
+    case 'autorizado':
+      return { color: '#2ecc71' }; // Verde
+    case 'processando':
+    case 'processando_autorizacao':
+      return { color: '#f1c40f' }; // Amarelo
+    case 'erro':
+    case 'erro_autorizacao':
+    case 'cancelado':
+      return { color: '#e74c3c' }; // Vermelho
+    default:
+      return { color: PALETTE.CinzaClaro };
+  }
 };
 
 const styles = StyleSheet.create({
@@ -192,6 +229,12 @@ const styles = StyleSheet.create({
     color: PALETTE.CinzaClaro,
     fontSize: 14,
     fontFamily: "Montserrat_400Regular",
+  },
+  cardStatus: {
+    fontSize: 12,
+    fontFamily: "Montserrat_400Regular",
+    fontWeight: 'bold',
+    marginTop: 4,
   },
   cardActions: {
     flexDirection: 'row',
