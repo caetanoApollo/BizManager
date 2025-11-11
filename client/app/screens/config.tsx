@@ -59,6 +59,12 @@ const SettingsPage = () => {
   const [cnpj, setCnpj] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+
+  // --- NOVOS STATES ---
+  const [inscricaoMunicipal, setInscricaoMunicipal] = useState("");
+  const [codigoMunicipio, setCodigoMunicipio] = useState("");
+  // --- FIM NOVOS STATES ---
+
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [notificacoesEstoque, setNotificacoesEstoque] = useState(true);
   const [integracaoGoogleCalendar, setIntegracaoGoogleCalendar] = useState(false);
@@ -161,6 +167,10 @@ const SettingsPage = () => {
         setNome(userProfile.nome || "");
         setCnpj(formatCNPJ(userProfile.cnpj || ""));
         setEmail(userProfile.email || "");
+        // --- CARREGA NOVOS DADOS ---
+        setInscricaoMunicipal(userProfile.inscricao_municipal || "");
+        setCodigoMunicipio(userProfile.codigo_municipio || "");
+        // --- FIM NOVOS DADOS ---
       }
       if (userConfigs) {
         const calendarIntegrationEnabled = !!userConfigs.integracao_google_calendar;
@@ -255,10 +265,25 @@ const SettingsPage = () => {
     }
     setSaving(true);
     try {
-      const userDataToUpdate: { nome?: string; email?: string; cnpj?: string; senha?: string } = {};
+      // --- ATUALIZA TIPO DO OBJETO ---
+      const userDataToUpdate: {
+        nome?: string;
+        email?: string;
+        cnpj?: string;
+        senha?: string;
+        inscricao_municipal?: string; // NOVO
+        codigo_municipio?: string;    // NOVO
+      } = {};
+
       if (nome) userDataToUpdate.nome = nome;
       if (email) userDataToUpdate.email = email;
       if (cnpj) userDataToUpdate.cnpj = cnpj.replace(/[^\d]/g, '');
+
+      // --- ADICIONA NOVOS CAMPOS AO PAYLOAD ---
+      if (inscricaoMunicipal) userDataToUpdate.inscricao_municipal = inscricaoMunicipal;
+      if (codigoMunicipio) userDataToUpdate.codigo_municipio = codigoMunicipio;
+      // --- FIM DA ADIÇÃO ---
+
       if (senha) {
         if (senha.length < 6) {
           throw new Error("A nova senha deve ter no mínimo 6 caracteres.");
@@ -315,7 +340,7 @@ const SettingsPage = () => {
       <KeyboardAvoidingView
         style={{ flex: 1, width: '100%' }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
@@ -342,6 +367,33 @@ const SettingsPage = () => {
                 <MaterialCommunityIcons name="card-account-details-outline" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
                 <TextInput style={styles.input} value={cnpj} onChangeText={handleCNPJChange} placeholder="CNPJ" placeholderTextColor={PALETTE.CinzaClaro} maxLength={18} keyboardType="numeric" editable={!saving && !authRequestLoading} />
               </View>
+
+              {/* --- NOVOS CAMPOS ADICIONADOS --- */}
+              <View style={styles.inputGroup}>
+                <Feather name="hash" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  value={inscricaoMunicipal}
+                  onChangeText={setInscricaoMunicipal}
+                  placeholder="Inscrição Municipal"
+                  placeholderTextColor={PALETTE.CinzaClaro}
+                  editable={!saving && !authRequestLoading}
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <Feather name="map-pin" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  value={codigoMunicipio}
+                  onChangeText={setCodigoMunicipio}
+                  placeholder="Código do Município"
+                  placeholderTextColor={PALETTE.CinzaClaro}
+                  keyboardType="numeric"
+                  editable={!saving && !authRequestLoading}
+                />
+              </View>
+              {/* --- FIM DOS NOVOS CAMPOS --- */}
+
               <View style={styles.inputGroup}>
                 <Feather name="mail" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
                 <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email" placeholderTextColor={PALETTE.CinzaClaro} keyboardType="email-address" autoCapitalize="none" editable={!saving && !authRequestLoading} />
@@ -397,7 +449,7 @@ const SettingsPage = () => {
                   { backgroundColor: isCalendarConnected ? PALETTE.VermelhoErro : PALETTE.VerdeAgua, marginTop: 5 },
                   (!request || authRequestLoading || saving) && styles.buttonDisabled
                 ]}
-                onPress={handleCalendarConnectToggle} 
+                onPress={handleCalendarConnectToggle}
                 disabled={!request || authRequestLoading || saving}
               >
                 {authRequestLoading ? (

@@ -36,7 +36,6 @@ router.post(
     "/invoices",
     authMiddleware,
     upload.none(),
-    validate(invoiceSchema, "body"),
     invoiceController.createInvoice
 );
 
@@ -102,7 +101,6 @@ router.put(
     "/invoices/:id",
     authMiddleware,
     upload.none(),
-    validate(invoiceSchema, "body"),
     invoiceController.updateInvoice
 );
 

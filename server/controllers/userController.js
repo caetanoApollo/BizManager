@@ -1,11 +1,3 @@
-/*
- * ARQUIVO: server/controllers/userController.js (Atualizado)
- *
- * O que mudou:
- * 1. `registerUser`: Agora recebe e insere `inscricao_municipal` e `codigo_municipio`.
- * 2. `updateUserProfile`: Agora permite a atualização de `inscricao_municipal` e `codigo_municipio`.
- * 3. `getUserProfile`: Agora retorna os novos campos fiscais.
- */
 require('dotenv').config();
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
@@ -117,7 +109,7 @@ exports.loginUser = async (req, res) => {
         const token = jwt.sign(
             { id: usuario.id, email: usuario.email },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' } // Ajuste o tempo de expiração conforme necessário
+            { expiresIn: '20h' } 
         );
         console.log(`Login realizado com sucesso para o usuário ID ${usuario.id}, Identificador ${identificador}`);
         res.json({ token, usuario_id: usuario.id, nome: usuario.nome, email: usuario.email, telefone: usuario.telefone, cnpj: usuario.cnpj });

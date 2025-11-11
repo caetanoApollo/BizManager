@@ -140,7 +140,7 @@ const AddNotaPage: React.FC = () => {
     const todayDateFormatted = new Date().toLocaleDateString('pt-BR');
     const [dataEmissao, setDataEmissao] = useState(todayDateFormatted);
     const [valorServico, setValorServico] = useState(formatCurrencyForDisplay(0));
-    const [aliquotaInput, setAliquotaInput] = useState('0');
+    const [aliquotaInput, setAliquotaInput] = useState('');
 
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [clienteTomadorId, setClienteTomadorId] = useState<number | null>(null);
@@ -164,9 +164,6 @@ const AddNotaPage: React.FC = () => {
         codigo_tributario_municipio: '',
     });
 
-    // ===================================================================
-    // BLOCO UseEffect CORRIGIDO (com chaves no catch)
-    // ===================================================================
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -196,9 +193,6 @@ const AddNotaPage: React.FC = () => {
         fetchData();
     }, []);
 
-    // ===================================================================
-    // FUNÇÃO handleSelectClient CORRIGIDA
-    // ===================================================================
     const handleSelectClient = (cliente: Cliente) => {
         setClienteTomadorId(cliente.id);
         setClienteNomeTomador(cliente.nome);
@@ -244,9 +238,6 @@ const AddNotaPage: React.FC = () => {
         setServico(s => ({ ...s, aliquota: floatValue }));
     };
 
-    // ===================================================================
-    // FUNÇÃO handleSalvarNota (Esta função está correta, mas depende da api.ts)
-    // ===================================================================
     const handleSalvarNota = async () => {
         // 1. Validação de dados (igual ao seu código)
         const valorNumerico = parseFloat(valorServico.replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
@@ -307,11 +298,10 @@ const AddNotaPage: React.FC = () => {
             router.push("/screens/notaFiscal");
 
         } catch (error: any) {
-            console.error("Erro ao salvar Nota Fiscal:", error);
-            // `error.message` aqui virá do `apiFetch` (que já extrai o erro do JSON)
+            console.error("Erro ao salvar Nota Fiscal:", error)
             Alert.alert(
                 "Erro ao Enviar Nota",
-                `Falha ao enviar nota fiscal: ${error.message}. Verifique seus dados fiscais no Perfil.`
+                `Falha ao enviar nota fiscal: ${error.message} Verifique seus dados fiscais no Perfil.`
             );
         } finally {
             setSaving(false);
@@ -341,7 +331,6 @@ const AddNotaPage: React.FC = () => {
                     <View style={styles.formContainer}>
                         <Text style={styles.label}>Cliente (Tomador)</Text>
 
-                        {/* NOVO SELETOR DE CLIENTES SIMULANDO INPUT COM PLACEHOLDER */}
                         <TouchableOpacity
                             style={styles.inputGroup}
                             onPress={() => setModalClientesVisible(true)}

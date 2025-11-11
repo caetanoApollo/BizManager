@@ -52,9 +52,6 @@ const userLoginSchema = Joi.object({
     })
 });
 
-// ===================================================================
-// CORREÇÃO APLICADA AQUI
-// ===================================================================
 const clientSchema = Joi.object({
     usuario_id: Joi.number().integer().positive().required().messages({
         'number.base': 'ID do usuário deve ser um número.',
