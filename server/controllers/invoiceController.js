@@ -2,7 +2,7 @@ const db = require('../config/db');
 const axios = require('axios');
 
 const focusApi = axios.create({
-    baseURL: process.env.FOCUSNFE_URL || 'https://api.focusnfe.com.br',
+    baseURL: process.env.FOCUSNFE_URL,
     auth: {
         username: process.env.FOCUSNFE_TOKEN,
         password: ''
@@ -189,3 +189,72 @@ exports.cancelInvoice = async (req, res) => {
         res.status(500).json({ error: `Erro ao cancelar nota: ${apiError}` });
     }
 };
+
+// Atualiza campos básicos de uma nota fiscal existente do usuário autenticado
+exports.updateInvoice = async (req, res) => {
+    const { id } = req.params;
+    const usuario_id = req.user && req.user.id;
+
+    if (!usuario_id) {
+        return res.status(401).json({ error: 'Não autenticado.' });
+    }
+
+    try {
+        // Verifica se a nota existe e pertence ao usuário
+        const [rows] = await db.query(
+            'SELECT id, status FROM notas_fiscais WHERE id = ? AND usuario_id = ?',
+            [id, usuario_id]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Nota fiscal não encontrada.' });
+        }
+
+        // Aceita tanto o formato antigo (valor, cnpj_tomador, etc.) quanto o usado no create (servico/tomador)
+        const b = req.body || {};
+        const updates = {};
+
+        // Campos diretos
+        if (b.data_emissao) updates.data_emissao = b.data_emissao;
+        if (b.valor !== undefined) updates.valor = b.valor;
+        if (b.servico_fornecido) updates.discriminacao_servico = b.servico_fornecido;
+        if (b.cnpj_tomador) updates.cnpj_tomador = b.cnpj_tomador;
+        if (b.razao_social_tomador) updates.razao_social_tomador = b.razao_social_tomador;
+        if (b.cliente_id !== undefined) updates.cliente_id = b.cliente_id;
+        if (b.status) updates.status = b.status;
+
+        // Campos no formato usado no create
+        if (b.servico && typeof b.servico === 'object') {
+            if (b.servico.valor_servicos !== undefined) updates.valor = b.servico.valor_servicos;
+            if (b.servico.discriminacao) updates.discriminacao_servico = b.servico.discriminacao;
+        }
+        if (b.tomador && typeof b.tomador === 'object') {
+            if (b.tomador.cnpj) updates.cnpj_tomador = b.tomador.cnpj;
+            if (b.tomador.razao_social) updates.razao_social_tomador = b.tomador.razao_social;
+        }
+
+        const fields = Object.keys(updates);
+        if (fields.length === 0) {
+            return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
+        }
+
+        const setClause = fields.map(f => `${f} = ?`).join(', ');
+        const values = fields.map(f => updates[f]);
+        values.push(id);
+
+        await db.query(`UPDATE notas_fiscais SET ${setClause} WHERE id = ?`, values);
+
+        // Retorna a nota atualizada
+        const [updated] = await db.query(
+            'SELECT * FROM notas_fiscais WHERE id = ? AND usuario_id = ?',
+            [id, usuario_id]
+        );
+
+        return res.status(200).json(updated[0]);
+    } catch (err) {
+        console.error('Erro ao atualizar nota fiscal:', err);
+        return res.status(500).json({ error: 'Erro interno ao atualizar nota fiscal.' });
+    }
+};
+
+// Alias para suportar rota DELETE /invoices/:id
+exports.deleteInvoice = exports.cancelInvoice;

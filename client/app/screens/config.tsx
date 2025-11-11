@@ -93,7 +93,6 @@ const SettingsPage = () => {
     discovery
   );
 
-  console.log("Request configurado:", !!request);
   const exchangeCode = async (code: string) => {
     if (!userId) {
       console.warn("UserID não encontrado ao tentar trocar o código.");
@@ -102,7 +101,6 @@ const SettingsPage = () => {
       return;
     }
 
-    console.log("🚀 Trocando código pelo token...");
     setLoading(true);
     setAuthRequestLoading(false);
 
@@ -112,7 +110,6 @@ const SettingsPage = () => {
         body: JSON.stringify({ code, userId, redirectUri }),
       });
 
-      console.log("✅ Resposta do backend:", apiResult);
       Alert.alert("Sucesso", "Google Calendar conectado!");
       setIsCalendarConnected(true);
       setIntegracaoGoogleCalendar(true);
@@ -130,19 +127,16 @@ const SettingsPage = () => {
 
   useEffect(() => {
     if (response) {
-      console.log("Response recebido do AuthSession:", response.type);
 
       setAuthRequestLoading(false);
 
       if (response.type === "success") {
         const { code } = response.params;
-        console.log("Código de autorização obtido automaticamente!");
         exchangeCode(code);
       } else if (response.type === "error") {
         console.error("❌ Erro no AuthSession:", response.error);
         Alert.alert("Erro", `Falha na autenticação: ${response.error?.message || 'Tente novamente.'}`);
       } else if (response.type === "cancel") {
-        console.log("Autenticação cancelada pelo usuário.");
         setIntegracaoGoogleCalendar(isCalendarConnected);
       }
     }
@@ -152,14 +146,12 @@ const SettingsPage = () => {
     try {
       const usuarioIdString = await AsyncStorage.getItem('usuario_id');
       if (!usuarioIdString) {
-        Alert.alert("Erro", "ID do usuário não encontrado. Faça login novamente.");
         router.replace('/screens/login');
         return;
       }
       const id = parseInt(usuarioIdString, 10);
       setUserId(id);
 
-      console.log("Buscando dados para userId:", id);
       const [userProfile, userConfigs] = await Promise.all([
         getUserProfile(id).catch(err => { console.error("Erro ao buscar perfil:", err); return null; }),
         getConfigsByUserId(id).catch(err => { console.error("Erro ao buscar configs:", err); return null; })
@@ -171,7 +163,6 @@ const SettingsPage = () => {
         setEmail(userProfile.email || "");
       }
       if (userConfigs) {
-        console.log("Configurações recebidas:", userConfigs);
         const calendarIntegrationEnabled = !!userConfigs.integracao_google_calendar;
         const hasRefreshToken = !!userConfigs.google_refresh_token;
 
@@ -225,7 +216,6 @@ const SettingsPage = () => {
               try {
                 await apiFetch(`/api/google/disconnect`, { method: 'POST', body: JSON.stringify({ userId }) });
                 await updateConfigs(userId, notificacoesEstoque, false);
-                console.log("Solicitação de desconexão enviada ao backend.");
                 Alert.alert("Sucesso", "Google Calendar desconectado.");
                 setIsCalendarConnected(false);
                 setIntegracaoGoogleCalendar(false);

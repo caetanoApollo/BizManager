@@ -58,11 +58,24 @@ const CadastroPage: React.FC = () => {
 
   const formatCNPJ = (value: string) => {
     const cleanedValue = value.replace(/\D/g, "");
-    let formatted = cleanedValue.slice(0, 14); // Limita para 14 dígitos
-    if (formatted.length > 2) formatted = `${formatted.slice(0, 2)}.${formatted.slice(2)}`;
-    if (formatted.length > 6) formatted = `${formatted.slice(0, 2)}.${formatted.slice(2, 5)}.${formatted.slice(5)}`;
-    if (formatted.length > 10) formatted = `${formatted.slice(0, 2)}.${formatted.slice(2, 5)}.${formatted.slice(5, 8)}/${formatted.slice(8)}`;
-    if (formatted.length > 15) formatted = `${formatted.slice(0, 2)}.${formatted.slice(2, 5)}.${formatted.slice(5, 8)}/${formatted.slice(8, 12)}-${formatted.slice(12, 14)}`;
+    let formatted = cleanedValue;
+
+    if (cleanedValue.length <= 11) { // CPF
+      formatted = cleanedValue;
+      if (cleanedValue.length > 3) formatted = formatted.replace(/^(\d{3})(\d)/, "$1.$2");
+      if (cleanedValue.length > 6) formatted = formatted.replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
+      if (cleanedValue.length > 9) formatted = formatted.replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
+      return formatted.slice(0, 14);
+    }
+
+    if (cleanedValue.length > 11) { // CNPJ
+      formatted = cleanedValue;
+      if (cleanedValue.length > 2) formatted = formatted.replace(/^(\d{2})(\d)/, "$1.$2");
+      if (cleanedValue.length > 5) formatted = formatted.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+      if (cleanedValue.length > 8) formatted = formatted.replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3/$4");
+      if (cleanedValue.length > 12) formatted = formatted.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5");
+      return formatted.slice(0, 18);
+    }
     return formatted;
   };
 
@@ -94,10 +107,10 @@ const CadastroPage: React.FC = () => {
     try {
       // Envia os novos campos para a API
       await cadastro(
-        nome, 
-        email, 
-        telefone, 
-        cnpj, 
+        nome,
+        email,
+        telefone,
+        cnpj,
         senha,
         inscricaoMunicipal,
         codigoMunicipio
@@ -150,7 +163,7 @@ const CadastroPage: React.FC = () => {
               <MaterialCommunityIcons name="card-account-details-outline" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
               <TextInput style={styles.input} value={cnpj} onChangeText={(text) => setCnpj(formatCNPJ(text))} placeholder="CNPJ" placeholderTextColor={PALETTE.CinzaClaro} maxLength={18} keyboardType="numeric" />
             </View>
-            
+
             {/* NOVO CAMPO: Inscrição Municipal */}
             <View style={styles.inputGroup}>
               <Feather name="hash" size={20} color={PALETTE.CinzaClaro} style={styles.icon} />
@@ -177,7 +190,7 @@ const CadastroPage: React.FC = () => {
                 <MaterialCommunityIcons name={confirmarSenhaVisivel ? "eye-off" : "eye"} size={20} color={PALETTE.Branco} />
               </TouchableOpacity>
             </View>
-            
+
             <TouchableOpacity style={styles.button} onPress={handleCadastro} disabled={loading}>
               {loading ? (
                 <ActivityIndicator color={PALETTE.Branco} />
@@ -222,9 +235,9 @@ const styles = StyleSheet.create({
     color: PALETTE.Branco,
     letterSpacing: 1.5,
   },
-  create: { 
-    color: PALETTE.Branco, 
-    fontSize: 25, 
+  create: {
+    color: PALETTE.Branco,
+    fontSize: 25,
     fontFamily: "BebasNeue_400Regular",
     marginTop: -15, // Puxa o "Criar Conta" para mais perto do logo
   },
