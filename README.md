@@ -48,6 +48,8 @@
 
 Desenvolvido para ser uma ferramenta completa, o BizManager ataca as dores mais comuns dos pequenos negócios, oferecendo funcionalidades que vão desde o cadastro de clientes até a emissão de notas fiscais, tudo em uma interface amigável e acessível. Nosso objetivo é fornecer uma solução que não apenas gerencie, mas impulsione o crescimento de microempreendimentos.
 
+Link para vídeo demostração: [link]
+
 ## ✨ Funcionalidades Principais
 
 O BizManager é recheado de funcionalidades pensadas para o dia a dia do microempreendedor:
