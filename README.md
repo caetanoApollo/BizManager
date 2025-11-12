@@ -216,6 +216,7 @@ Antes de começar, garanta que você tem instalado:
 ## 🔩 Estrutura do Projeto
 
 A estrutura do projeto está organizada da seguinte forma:
+
 BizManager/
 ├── client/                   
 │   ├── app/                  
