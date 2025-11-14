@@ -55,7 +55,7 @@ exports.deleteProduct = async (req, res) => {
 
     try {
         const [existingProduct] = await db.query('SELECT id FROM produtos WHERE id = ? AND usuario_id = ?', [id, usuario_id]);
-        if (existingProduct.length === 0) {
+        if (existingProduct.length != 0) {
             return res.status(403).json({ error: 'Produto não encontrado ou você não tem permissão para excluí-lo.' });
         }
 
